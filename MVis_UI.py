@@ -11,6 +11,8 @@ Juan García Sánchez, 2023
 
 from tkinter import *
 from tkinter import ttk, font, messagebox, filedialog, PhotoImage
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import numpy as np
 import os
 import gc
@@ -38,13 +40,21 @@ class MVis_UI(Tk):
 # Main properties of the UI
         Tk.__init__(self)
         self.title(__title__)
-        self.geometry('235x385+800+350')
-        self.resizable(False, False)
+        self.size_frame = 600
+        self.size_width = 280
+        self.size_height = 150
+        self.update_idletasks()
+        x_pos = (self.winfo_screenwidth() - self.size_frame - self.size_width - self.winfo_rootx() + self.winfo_x())//2
+        y_pos = (self.winfo_screenheight() - self.size_frame - self.size_height - self.winfo_rooty() + self.winfo_y())//2
+        self.geometry('{}x{}+{}+{}'.format(str(self.size_frame + self.size_width), str(self.size_frame + self.size_height), str(x_pos), str(y_pos)))
+        self.minsize(self.size_frame + self.size_width, self.size_frame + self.size_height)
+        # self.resizable(False, False)
         self.lift()
         self.focus_force()
         icon = PhotoImage(file =  __rootf__ + "/Logo MVis.png")
         self.iconphoto(False, icon)
         self.config(bg = "#bfbfbf")
+
 
 # Style settings
         default_font = font.nametofont("TkDefaultFont")
@@ -54,8 +64,37 @@ class MVis_UI(Tk):
         self.font_title = {'bg' : '#999999', 'fg' : 'blue', 'font' : 'Arial 12 bold'}
         self.font_entry = {'bg' : 'white', 'fg' : 'black', 'font' : 'Verdana 11'}
         self.font_val = {'bg' : '#bfbfbf', 'fg' : 'black', 'font' : 'Verdana 11'}
-        self.font_text = {'bg' : '#bfbfbf', 'fg' : 'black', 'font' : 'Verdana 12'}
-        self.font_man = {'bg' : 'darkblue', 'font' : "Arial 11", 'fg' : 'white'}
+        self.font_text = {'bg' : '#e6e6e6', 'fg' : 'black', 'font' : 'Verdana 18'}
+        self.font_man = {'bg' : 'darkblue', 'fg' : 'white', 'font' : "Arial 11"}
+
+# UI layout
+        ''' Organization in three frames: graph panel at the center, an auxiliar frame below for file selection settings,
+        and a side frame with the graph options '''
+        self.fr_graph = Frame(self, bg = '#e6e6e6')
+        self.fr_selector = Frame(self, bg = '#cccccc')
+        self.fr_options = Frame(self, bg = "#bfbfbf")
+        self.update()
+        self.fr_graph.place(relx = 0, rely = 0, width = self.winfo_width() - self.size_width, height = self.winfo_width() - self.size_width)
+        self.fr_selector.place(relx = 0, y = self.winfo_height() - self.size_height, width = self.winfo_width() - self.size_width, height = self.size_height)
+        self.fr_options.place(x = self.winfo_width() - self.size_width, rely = 0, width = self.size_width, relheight = 1)
+        def cf_frames(event):
+            self.fr_graph.place_configure(width = self.winfo_width() - self.size_width, height = self.winfo_height() - self.size_height)
+            self.fr_selector.place_configure(y = self.winfo_height() - self.size_height, width = self.winfo_width() - self.size_width, height = self.size_height)
+            self.fr_options.place_configure(x = self.winfo_width() - self.size_width, width = self.size_width)
+        self.bind("<Configure>", cf_frames)
+
+        self.lab_selection = Label(self.fr_graph, text = 'Click to select file', cursor = 'hand2', **self.font_text)
+        self.lab_selection.pack(anchor = CENTER, expand = True, fill = BOTH)
+
+        # self.FDC_graph = Figure(figsize=(5, 5), dpi=100)
+        # self.canv = FigureCanvasTkAgg(self.FDC_graph, self.fr_6)
+        # self.toolbar = NavigationToolbar2Tk(self.canv, self.fr_7)
+        # self.canv.get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
+        # self.canv.get_tk_widget().place
+        # self.canv._tkcanvas.pack(side = TOP, fill = BOTH, expand = True)
+
+
+
 
 # UI contextual menu
         self.menucontext = Menu(self, tearoff = 0)
