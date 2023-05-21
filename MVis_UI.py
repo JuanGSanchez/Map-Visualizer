@@ -61,11 +61,20 @@ class MVis_UI(Tk):
         default_font.configure(family = 'TimesNewRoman', size = 12)
         self.option_add("*Font", default_font)  # Default font      
 
-        self.font_title = {'bg' : '#999999', 'fg' : 'blue', 'font' : 'Arial 12 bold'}
+        self.syle_scale = {'bg' : '#bfbfbf', 'troughcolor' : '#e6e6e6', 'highlightbackground' : '#bfbfbf'}
+        self.font_title = {'bg' : '#999999', 'fg' : 'blue', 'font' : 'Arial 14 bold'}
+        self.font_subtitle = {'bg' : '#bfbfbf', 'fg' : 'black', 'font' : 'Arial 12 bold'}
         self.font_entry = {'bg' : 'white', 'fg' : 'black', 'font' : 'Verdana 11'}
-        self.font_val = {'bg' : '#bfbfbf', 'fg' : 'black', 'font' : 'Verdana 11'}
+        self.font_button = {'bg' : 'white', 'fg' : 'black', 'font' : 'Verdana 14'}
         self.font_text = {'bg' : '#e6e6e6', 'fg' : 'black', 'font' : 'Verdana 18'}
         self.font_man = {'bg' : 'darkblue', 'fg' : 'white', 'font' : "Arial 11"}
+
+# UI variables
+        self.source = StringVar(value = '')   # Root path variable
+        self.val_rootmin = DoubleVar(value = 0)
+        self.val_rootmax = DoubleVar(value = 100)
+        self.val_min = DoubleVar(value = 0)
+        self.val_sweep1 = DoubleVar(value = 0)
 
 # UI layout
         ''' Organization in three frames: graph panel at the center, an auxiliar frame below for file selection settings,
@@ -83,8 +92,29 @@ class MVis_UI(Tk):
             self.fr_options.place_configure(x = self.winfo_width() - self.size_width, width = self.size_width)
         self.bind("<Configure>", cf_frames)
 
+        '''Graph frame's initial label'''
         self.lab_selection = Label(self.fr_graph, text = 'Click to select file', cursor = 'hand2', **self.font_text)
         self.lab_selection.pack(anchor = CENTER, expand = True, fill = BOTH)
+        self.lab_selection.bind("<1>", self.source_selection)
+
+        '''Auxiliar frame widgets'''
+        self.Bt_reset = Button(self.fr_selector, text = 'Open new map', command = self.source_selection, cursor = 'hand2', **self.font_button, state = DISABLED)
+        self.Bt_reset.pack(anchor = CENTER, expand = False, pady = 10)
+
+        '''Options frame'''
+        Title_val = Label(self.fr_options, text = 'Map values range', justify = CENTER, **self.font_title)
+        Title_val.grid(row = 0, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5)
+        Subtitle_val1 = Label(self.fr_options, text = 'Min.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
+        Subtitle_val1.grid(row = 1, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
+
+        Sc_val1 = Scale(self.fr_options, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_val1.grid(row = 1, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
+        self.En_val1 = Entry(self.fr_options, textvariable = self.val_min, **self.font_entry, width = 11)
+        self.En_val1.grid(row = 2, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
+        self.Lb_val1 = Label(self.fr_options, text = "...", bg = 'white', relief = GROOVE, width = 2)
+        self.Lb_val1.grid(row = 2, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
+        self.Lb_val1.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_val1))
+        self.Lb_val1.bind('<1>', lambda event: self.Lb_val1.config(text = '...'))
 
         # self.FDC_graph = Figure(figsize=(5, 5), dpi=100)
         # self.canv = FigureCanvasTkAgg(self.FDC_graph, self.fr_6)
@@ -93,17 +123,58 @@ class MVis_UI(Tk):
         # self.canv.get_tk_widget().place
         # self.canv._tkcanvas.pack(side = TOP, fill = BOTH, expand = True)
 
-
-
-
 # UI contextual menu
         self.menucontext = Menu(self, tearoff = 0)
         self.menucontext.add_command(label = "About...", command = lambda : print('Author: '
                                     + __author__ + '\nVersion: ' + __version__ + '\nLicense: ' + __license__))
         self.menucontext.add_command(label = "Exit", command = self.exit)
 
+# UI bindings
+        self.En_val1.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.En_val1, self.Lb_val1))
+        self.En_val1.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.En_val1, self.Lb_val1))
+        self.bind("<3>", self.show_menucontext)
+        self.bind("<Control_R>", lambda event: self.exit())
+
 # UI mainloop
         self.mainloop()
+
+
+
+# Additional functions of the class
+    ''' Source directory selection function '''
+    def source_selection(self, event = 0):
+        adress = filedialog.askdirectory(initialdir = "", title = "FF Explorer, root path selection")
+        if adress != '':
+            self.source.set(adress)
+            self.lab_selection.pack_forget()
+            self.Bt_reset.config(state = NORMAL)
+
+
+    ''' Change input values with up and down keys '''
+    def change_values(self, event, e, values, lab, order):
+        decimals = len(str(values[2].get()).split('.')[-1]) if order['text'] == '...' else -int(order['text'])
+        new_val = np.round(values[2].get() + e*10**(-decimals), decimals)
+        if values[0] <= new_val <= values[1]:
+            values[2].set(new_val)
+
+
+    ''' Change decimal position to sweep with up and down keys '''
+    def change_sweep(self, e, lab):
+        init = lab["text"]
+        match init:
+            case '...':
+                init = str(int(e.delta/120)) if e.delta < 0 else '0'
+            case '0':
+                init = '...' if e.delta < 0 else '1'
+            case '-1':
+                init = '-2' if e.delta < 0 else '...'
+            case '99':
+                init = str(int(init) + int(e.delta/120)) if e.delta < 0 else '99'
+            case '-99':
+                init = '-99' if e.delta < 0 else str(int(init) + int(e.delta/120))
+            case _:
+                init = str(int(init) + int(e.delta/120))
+        lab.config(text = init)
 
 
     ''' Show contextual menu '''
