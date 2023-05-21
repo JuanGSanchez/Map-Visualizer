@@ -75,6 +75,14 @@ class MVis_UI(Tk):
         self.val_rootmax = DoubleVar(value = 100)
         self.val_min = DoubleVar(value = 0)
         self.val_sweep1 = DoubleVar(value = 0)
+        self.val_max = DoubleVar(value = 0)
+        self.val_sweep2 = DoubleVar(value = 0)
+        self.col_rootmin = DoubleVar(value = 0)
+        self.col_rootmax = DoubleVar(value = 100)
+        self.col_min = DoubleVar(value = 0)
+        self.col_sweep1 = DoubleVar(value = 0)
+        self.col_max = DoubleVar(value = 0)
+        self.col_sweep2 = DoubleVar(value = 0)
 
 # UI layout
         ''' Organization in three frames: graph panel at the center, an auxiliar frame below for file selection settings,
@@ -104,9 +112,9 @@ class MVis_UI(Tk):
         '''Options frame'''
         Title_val = Label(self.fr_options, text = 'Map values range', justify = CENTER, **self.font_title)
         Title_val.grid(row = 0, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5)
+
         Subtitle_val1 = Label(self.fr_options, text = 'Min.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
         Subtitle_val1.grid(row = 1, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-
         Sc_val1 = Scale(self.fr_options, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
         Sc_val1.grid(row = 1, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
         self.En_val1 = Entry(self.fr_options, textvariable = self.val_min, **self.font_entry, width = 11)
@@ -115,6 +123,42 @@ class MVis_UI(Tk):
         self.Lb_val1.grid(row = 2, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
         self.Lb_val1.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_val1))
         self.Lb_val1.bind('<1>', lambda event: self.Lb_val1.config(text = '...'))
+
+        Subtitle_val2 = Label(self.fr_options, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
+        Subtitle_val2.grid(row = 3, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
+        Sc_val2 = Scale(self.fr_options, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_val2.grid(row = 3, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
+        self.En_val2 = Entry(self.fr_options, textvariable = self.val_min, **self.font_entry, width = 11)
+        self.En_val2.grid(row = 4, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
+        self.Lb_val2 = Label(self.fr_options, text = "...", bg = 'white', relief = GROOVE, width = 2)
+        self.Lb_val2.grid(row = 4, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
+        self.Lb_val2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_val2))
+        self.Lb_val2.bind('<1>', lambda event: self.Lb_val2.config(text = '...'))
+
+        Title_col = Label(self.fr_options, text = 'Map colours range', justify = CENTER, **self.font_title)
+        Title_col.grid(row = 5, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5)
+
+        Subtitle_col1 = Label(self.fr_options, text = 'Min.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
+        Subtitle_col1.grid(row = 6, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
+        Sc_col1 = Scale(self.fr_options, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_col1.grid(row = 6, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
+        self.En_col1 = Entry(self.fr_options, textvariable = self.val_min, **self.font_entry, width = 11)
+        self.En_col1.grid(row = 7, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
+        self.Lb_col1 = Label(self.fr_options, text = "...", bg = 'white', relief = GROOVE, width = 2)
+        self.Lb_col1.grid(row = 7, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
+        self.Lb_col1.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col1))
+        self.Lb_col1.bind('<1>', lambda event: self.Lb_col1.config(text = '...'))
+
+        Subtitle_col2 = Label(self.fr_options, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
+        Subtitle_col2.grid(row = 8, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
+        Sc_col2 = Scale(self.fr_options, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_col2.grid(row = 8, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
+        self.En_col2 = Entry(self.fr_options, textvariable = self.val_min, **self.font_entry, width = 11)
+        self.En_col2.grid(row = 9, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
+        self.Lb_col2 = Label(self.fr_options, text = "...", bg = 'white', relief = GROOVE, width = 2)
+        self.Lb_col2.grid(row = 9, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
+        self.Lb_col2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col2))
+        self.Lb_col2.bind('<1>', lambda event: self.Lb_col2.config(text = '...'))
 
         # self.FDC_graph = Figure(figsize=(5, 5), dpi=100)
         # self.canv = FigureCanvasTkAgg(self.FDC_graph, self.fr_6)
