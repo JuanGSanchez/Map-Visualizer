@@ -11,6 +11,7 @@ Juan García Sánchez, 2023
 
 from tkinter import *
 from tkinter import ttk, font, messagebox, filedialog, PhotoImage
+import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import numpy as np
@@ -40,14 +41,18 @@ class MVis_UI(Tk):
 # Main properties of the UI
         Tk.__init__(self)
         self.title(__title__)
-        self.size_frame = 600
-        self.size_width = 280
-        self.size_height = 150
         self.update_idletasks()
-        x_pos = (self.winfo_screenwidth() - self.size_frame - self.size_width - self.winfo_rootx() + self.winfo_x())//2
-        y_pos = (self.winfo_screenheight() - self.size_frame - self.size_height - self.winfo_rooty() + self.winfo_y())//2
-        self.geometry('{}x{}+{}+{}'.format(str(self.size_frame + self.size_width), str(self.size_frame + self.size_height), str(x_pos), str(y_pos)))
-        self.minsize(self.size_frame + self.size_width, self.size_frame + self.size_height)
+        size_ref = int(self.winfo_screenheight()*0.90)
+        size_width = 280
+        size_height = 150
+        if (600 + size_height - self.winfo_rooty() + self.winfo_y()) < size_ref:
+            size_frame = 600
+        else:
+            size_frame = size_ref  - self.winfo_rooty() + self.winfo_y() - size_height
+        x_pos = (self.winfo_screenwidth() - size_frame - size_width - self.winfo_rootx() + self.winfo_x())//2
+        y_pos = (self.winfo_screenheight() - size_frame - size_height - self.winfo_rooty() + self.winfo_y())//2
+        self.geometry('{}x{}+{}+{}'.format(str(size_frame + size_width), str(size_frame + size_height), str(x_pos), str(y_pos)))
+        self.minsize(size_frame + size_width, size_frame + size_height)
         # self.resizable(False, False)
         self.lift()
         self.focus_force()
@@ -83,6 +88,7 @@ class MVis_UI(Tk):
         self.col_sweep1 = DoubleVar(value = 0)
         self.col_max = DoubleVar(value = 0)
         self.col_sweep2 = DoubleVar(value = 0)
+        self.g_itp = sorted(list(plt.matplotlib.image.interpolations_names))
 
 # UI layout
         ''' Organization in three frames: graph panel at the center, an auxiliar frame below for file selection settings,
@@ -91,13 +97,13 @@ class MVis_UI(Tk):
         self.fr_selector = Frame(self, bg = '#cccccc')
         self.fr_options = Frame(self, bg = "#bfbfbf")
         self.update()
-        self.fr_graph.place(relx = 0, rely = 0, width = self.winfo_width() - self.size_width, height = self.winfo_width() - self.size_width)
-        self.fr_selector.place(relx = 0, y = self.winfo_height() - self.size_height, width = self.winfo_width() - self.size_width, height = self.size_height)
-        self.fr_options.place(x = self.winfo_width() - self.size_width, rely = 0, width = self.size_width, relheight = 1)
+        self.fr_graph.place(relx = 0, rely = 0)
+        self.fr_selector.place(relx = 0)
+        self.fr_options.place(rely = 0, width = size_width, relheight = 1)
         def cf_frames(event):
-            self.fr_graph.place_configure(width = self.winfo_width() - self.size_width, height = self.winfo_height() - self.size_height)
-            self.fr_selector.place_configure(y = self.winfo_height() - self.size_height, width = self.winfo_width() - self.size_width, height = self.size_height)
-            self.fr_options.place_configure(x = self.winfo_width() - self.size_width, width = self.size_width)
+            self.fr_graph.place_configure(width = self.winfo_width() - size_width, height = self.winfo_height() - size_height)
+            self.fr_selector.place_configure(y = self.winfo_height() - size_height, width = self.winfo_width() - size_width, height = size_height)
+            self.fr_options.place_configure(x = self.winfo_width() - size_width)
         self.bind("<Configure>", cf_frames)
 
         '''Graph frame's initial label'''
@@ -160,6 +166,24 @@ class MVis_UI(Tk):
         self.Lb_col2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col2))
         self.Lb_col2.bind('<1>', lambda event: self.Lb_col2.config(text = '...'))
 
+        Lb_sep = Label(self.fr_options, bg = '#bfbfbf')
+        Lb_sep.grid(row = 10, column = 0, padx = 10, pady = 2, ipadx = 5, ipady = 5)
+
+        Title_set = Label(self.fr_options, text = 'Map settings', justify = CENTER, **self.font_title)
+        Title_set.grid(row = 11, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5)
+
+        Lb_map = Label(self.fr_options, text = 'Colormap', **self.font_subtitle)
+        Lb_map.grid(row = 12, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W)
+        self.Cb_map = ttk.Combobox(self.fr_options, values = plt.colormaps(), background = "#e6e6e6", state = "readonly", width = 10)
+        self.Cb_map.set(plt.colormaps()[2])
+        self.Cb_map.grid(row = 13, column = 0, columnspan = 2, padx = 10, pady = 10, ipadx = 5, ipady = 5, sticky = W+E)
+
+        Lb_map = Label(self.fr_options, text = 'Interpolation', **self.font_subtitle)
+        Lb_map.grid(row = 14, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W)
+        self.Cb_itp = ttk.Combobox(self.fr_options, values = self.g_itp, background = "#e6e6e6", state = "readonly", width = 10)
+        self.Cb_itp.set(self.g_itp[0])
+        self.Cb_itp.grid(row = 15, column = 0, columnspan = 2, padx = 10, pady = 10, ipadx = 5, ipady = 5, sticky = W+E)
+
         # self.FDC_graph = Figure(figsize=(5, 5), dpi=100)
         # self.canv = FigureCanvasTkAgg(self.FDC_graph, self.fr_6)
         # self.toolbar = NavigationToolbar2Tk(self.canv, self.fr_7)
@@ -176,14 +200,16 @@ class MVis_UI(Tk):
 # UI bindings
         self.En_val1.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.En_val1, self.Lb_val1))
         self.En_val1.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.En_val1, self.Lb_val1))
-#        self.En_val1.bind("<MouseWheel>", lambda event: self.val_min.set(self.val_min.get() + int(event.delta/120)))
         self.En_val1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.En_val1, self.Lb_val1))
         self.En_val2.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.En_val2, self.Lb_val2))
         self.En_val2.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.En_val2, self.Lb_val2))
+        self.En_val2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.En_val2, self.Lb_val2))
         self.En_col1.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.En_col1, self.Lb_col1))
         self.En_col1.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.En_col1, self.Lb_col1))
+        self.En_col1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.En_col1, self.Lb_col1))
         self.En_col2.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.En_col2, self.Lb_col2))
         self.En_col2.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.En_col2, self.Lb_col2))
+        self.En_col2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.En_col2, self.Lb_col2))
         self.bind("<3>", self.show_menucontext)
         self.bind("<Control_R>", lambda event: self.exit())
 
@@ -236,7 +262,7 @@ class MVis_UI(Tk):
 
     ''' Exit function '''
     def exit(self):
-        print('Exiting FF Explorer...')
+        print('Exiting Map Visualizer...')
         self.quit()
         self.destroy()
         for name in dir():
