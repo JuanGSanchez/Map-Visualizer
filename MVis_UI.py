@@ -43,7 +43,7 @@ class MVis_UI(Tk):
         self.title(__title__)
         self.update_idletasks()
         size_ref = int(self.winfo_screenheight()*0.90)
-        size_width = 280
+        size_width = 300
         size_height = 150
         if (600 + size_height - self.winfo_rooty() + self.winfo_y()) < size_ref:
             size_frame = 600
@@ -59,6 +59,7 @@ class MVis_UI(Tk):
         icon = PhotoImage(file =  __rootf__ + "/Logo MVis.png")
         self.iconphoto(False, icon)
         self.config(bg = "#bfbfbf")
+        self.check_fullscreen = False # Variable to check if window is in fullscreen mode
 
 
 # Style settings
@@ -90,99 +91,132 @@ class MVis_UI(Tk):
         self.col_sweep2 = DoubleVar(value = 0)
         self.g_itp = sorted(list(plt.matplotlib.image.interpolations_names))
 
-# UI layout
+# UI frame organization
         ''' Organization in three frames: graph panel at the center, an auxiliar frame below for file selection settings,
         and a side frame with the graph options '''
-        self.fr_graph = Frame(self, bg = '#e6e6e6')
-        self.fr_selector = Frame(self, bg = '#cccccc')
-        self.fr_options = Frame(self, bg = "#bfbfbf")
+        fr_graph = Frame(self, bg = '#e6e6e6')
+        fr_selector = Frame(self, bg = '#cccccc')
+        fr_options = Frame(self, bg = "#bfbfbf")
         self.update()
-        self.fr_graph.place(relx = 0, rely = 0)
-        self.fr_selector.place(relx = 0)
-        self.fr_options.place(rely = 0, width = size_width, relheight = 1)
+        fr_graph.place(relx = 0, rely = 0)
+        fr_selector.place(relx = 0)
+        fr_options.place(rely = 0, width = size_width, relheight = 1)
+
+        # Automatic readjustment of frames with changes in window's size
         def cf_frames(event):
-            self.fr_graph.place_configure(width = self.winfo_width() - size_width, height = self.winfo_height() - size_height)
-            self.fr_selector.place_configure(y = self.winfo_height() - size_height, width = self.winfo_width() - size_width, height = size_height)
-            self.fr_options.place_configure(x = self.winfo_width() - size_width)
+            fr_graph.place_configure(width = self.winfo_width() - size_width, height = self.winfo_height() - size_height)
+            fr_selector.place_configure(y = self.winfo_height() - size_height, width = self.winfo_width() - size_width, height = size_height)
+            fr_options.place_configure(x = self.winfo_width() - size_width)
         self.bind("<Configure>", cf_frames)
 
+        # Incorporation of a scrollbar in the options frame
+        fr_sdb = Scrollbar(fr_options, activebackground = 'blue', orient = VERTICAL, bg = 'blue', bd = 5)
+        fr_sdb.pack(side = RIGHT, fill = Y)
+        fr_cv = Canvas(fr_options, yscrollcommand = fr_sdb.set, bg = "#bfbfbf", highlightthickness = 0)
+        fr_cv.pack(expand = True, side = LEFT, fill = BOTH, anchor = CENTER)
+        fr_sdb.config(command = fr_cv.yview)
+        fr_sf = Frame(fr_cv, bg = "#bfbfbf")
+        fr_cv.create_window((0,0), window = fr_sf, anchor = NW)
+        fr_sf.bind("<Configure>", lambda event: fr_cv.configure(scrollregion = fr_cv.bbox("all")))
+        fr_sf.bind("<MouseWheel>", lambda event: fr_cv.yview_scroll(int(-2*np.sign(event.delta)) if fr_sdb.get() != (0,1) else 0, "units"))
+        fr_cv.bind("<MouseWheel>", lambda event: fr_cv.yview_scroll(int(-2*np.sign(event.delta)) if fr_sdb.get() != (0,1) else 0, "units"))
+
+# UI layout
         '''Graph frame's initial label'''
-        self.lab_selection = Label(self.fr_graph, text = 'Click to select file', cursor = 'hand2', **self.font_text)
+        self.lab_selection = Label(fr_graph, text = 'Click to select file', cursor = 'hand2', **self.font_text)
         self.lab_selection.pack(anchor = CENTER, expand = True, fill = BOTH)
         self.lab_selection.bind("<1>", self.source_selection)
 
         '''Auxiliar frame widgets'''
-        self.Bt_reset = Button(self.fr_selector, text = 'Open new map', command = self.source_selection, cursor = 'hand2', **self.font_button, state = DISABLED)
+        self.Bt_reset = Button(fr_selector, text = 'Open new map', command = self.source_selection, cursor = 'hand2', **self.font_button, state = DISABLED)
         self.Bt_reset.pack(anchor = CENTER, expand = False, pady = 10)
 
         '''Options frame'''
-        Title_val = Label(self.fr_options, text = 'Map values range', justify = CENTER, **self.font_title)
+        # Map value range section, title
+        Title_val = Label(fr_sf, text = 'Map values range', justify = CENTER, **self.font_title)
         Title_val.grid(row = 0, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5)
 
-        Subtitle_val1 = Label(self.fr_options, text = 'Min.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
+        # Subsection for changing map's minimum value
+        Subtitle_val1 = Label(fr_sf, text = 'Min.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
         Subtitle_val1.grid(row = 1, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_val1 = Scale(self.fr_options, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_val1 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
         Sc_val1.grid(row = 1, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
-        self.En_val1 = Entry(self.fr_options, textvariable = self.val_min, **self.font_entry, width = 11)
+        self.En_val1 = Entry(fr_sf, textvariable = self.val_min, **self.font_entry, width = 11)
         self.En_val1.grid(row = 2, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
-        self.Lb_val1 = Label(self.fr_options, text = "...", bg = 'white', relief = GROOVE, width = 2)
+        self.Lb_val1 = Label(fr_sf, text = "...", bg = 'white', relief = GROOVE, width = 2)
         self.Lb_val1.grid(row = 2, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
         self.Lb_val1.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_val1))
         self.Lb_val1.bind('<1>', lambda event: self.Lb_val1.config(text = '...'))
 
-        Subtitle_val2 = Label(self.fr_options, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
+        # Subsection for changing map's maximum value
+        Subtitle_val2 = Label(fr_sf, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
         Subtitle_val2.grid(row = 3, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_val2 = Scale(self.fr_options, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep2, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_val2 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep2, bd = 2, orient = HORIZONTAL, **self.syle_scale)
         Sc_val2.grid(row = 3, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
-        self.En_val2 = Entry(self.fr_options, textvariable = self.val_max, **self.font_entry, width = 11)
+        self.En_val2 = Entry(fr_sf, textvariable = self.val_max, **self.font_entry, width = 11)
         self.En_val2.grid(row = 4, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
-        self.Lb_val2 = Label(self.fr_options, text = "...", bg = 'white', relief = GROOVE, width = 2)
+        self.Lb_val2 = Label(fr_sf, text = "...", bg = 'white', relief = GROOVE, width = 2)
         self.Lb_val2.grid(row = 4, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
         self.Lb_val2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_val2))
         self.Lb_val2.bind('<1>', lambda event: self.Lb_val2.config(text = '...'))
 
-        Title_col = Label(self.fr_options, text = 'Map colours range', justify = CENTER, **self.font_title)
-        Title_col.grid(row = 5, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5)
+        # Spacing between sections
+        Lb_sep1 = Label(fr_sf, bg = '#bfbfbf')
+        Lb_sep1.grid(row = 5, column = 0, padx = 10, pady = 2, ipadx = 5, ipady = 2)
 
-        Subtitle_col1 = Label(self.fr_options, text = 'Min.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
-        Subtitle_col1.grid(row = 6, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_col1 = Scale(self.fr_options, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
-        Sc_col1.grid(row = 6, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
-        self.En_col1 = Entry(self.fr_options, textvariable = self.col_min, **self.font_entry, width = 11)
-        self.En_col1.grid(row = 7, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
-        self.Lb_col1 = Label(self.fr_options, text = "...", bg = 'white', relief = GROOVE, width = 2)
-        self.Lb_col1.grid(row = 7, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
+        # Colormap value range section, title
+        Title_col = Label(fr_sf, text = 'Map colours range', justify = CENTER, **self.font_title)
+        Title_col.grid(row = 6, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5)
+
+        # Subsection for changing colormap's minimum value
+        Subtitle_col1 = Label(fr_sf, text = 'Min.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
+        Subtitle_col1.grid(row = 7, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
+        Sc_col1 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_col1.grid(row = 7, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
+        self.En_col1 = Entry(fr_sf, textvariable = self.col_min, **self.font_entry, width = 11)
+        self.En_col1.grid(row = 8, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
+        self.Lb_col1 = Label(fr_sf, text = "...", bg = 'white', relief = GROOVE, width = 2)
+        self.Lb_col1.grid(row = 8, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
         self.Lb_col1.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col1))
         self.Lb_col1.bind('<1>', lambda event: self.Lb_col1.config(text = '...'))
 
-        Subtitle_col2 = Label(self.fr_options, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
-        Subtitle_col2.grid(row = 8, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_col2 = Scale(self.fr_options, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_sweep2, bd = 2, orient = HORIZONTAL, **self.syle_scale)
-        Sc_col2.grid(row = 8, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
-        self.En_col2 = Entry(self.fr_options, textvariable = self.col_max, **self.font_entry, width = 11)
-        self.En_col2.grid(row = 9, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
-        self.Lb_col2 = Label(self.fr_options, text = "...", bg = 'white', relief = GROOVE, width = 2)
-        self.Lb_col2.grid(row = 9, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
+        # Subsection for changing colormap's maximum value
+        Subtitle_col2 = Label(fr_sf, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
+        Subtitle_col2.grid(row = 9, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
+        Sc_col2 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_sweep2, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_col2.grid(row = 9, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
+        self.En_col2 = Entry(fr_sf, textvariable = self.col_max, **self.font_entry, width = 11)
+        self.En_col2.grid(row = 10, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
+        self.Lb_col2 = Label(fr_sf, text = "...", bg = 'white', relief = GROOVE, width = 2)
+        self.Lb_col2.grid(row = 10, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
         self.Lb_col2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col2))
         self.Lb_col2.bind('<1>', lambda event: self.Lb_col2.config(text = '...'))
 
-        Lb_sep = Label(self.fr_options, bg = '#bfbfbf')
-        Lb_sep.grid(row = 10, column = 0, padx = 10, pady = 2, ipadx = 5, ipady = 5)
+        # Spacing between sections
+        Lb_sep2 = Label(fr_sf, bg = '#bfbfbf')
+        Lb_sep2.grid(row = 11, column = 0, padx = 10, pady = 2, ipadx = 5, ipady = 5)
 
-        Title_set = Label(self.fr_options, text = 'Map settings', justify = CENTER, **self.font_title)
-        Title_set.grid(row = 11, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5)
+        # Other colormap settings, title
+        Title_set = Label(fr_sf, text = 'Map settings', justify = CENTER, **self.font_title)
+        Title_set.grid(row = 12, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5)
 
-        Lb_map = Label(self.fr_options, text = 'Colormap', **self.font_subtitle)
-        Lb_map.grid(row = 12, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W)
-        self.Cb_map = ttk.Combobox(self.fr_options, values = plt.colormaps(), background = "#e6e6e6", state = "readonly", width = 10)
+        # Subsection for the change of colormap used
+        Lb_map = Label(fr_sf, text = 'Colormap', **self.font_subtitle)
+        Lb_map.grid(row = 13, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W)
+        self.Cb_map = ttk.Combobox(fr_sf, values = plt.colormaps(), background = "#e6e6e6", state = "readonly", width = 10)
         self.Cb_map.set(plt.colormaps()[2])
-        self.Cb_map.grid(row = 13, column = 0, columnspan = 2, padx = 10, pady = 10, ipadx = 5, ipady = 5, sticky = W+E)
+        self.Cb_map.grid(row = 14, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
 
-        Lb_map = Label(self.fr_options, text = 'Interpolation', **self.font_subtitle)
-        Lb_map.grid(row = 14, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W)
-        self.Cb_itp = ttk.Combobox(self.fr_options, values = self.g_itp, background = "#e6e6e6", state = "readonly", width = 10)
+        # Spacing between sections
+        Lb_sep3 = Label(fr_sf, bg = '#bfbfbf')
+        Lb_sep3.grid(row = 15, column = 0, padx = 10, pady = 2, ipadx = 5, ipady = 2)
+
+        # Subsection for the change of interpolation among pixels
+        Lb_map = Label(fr_sf, text = 'Interpolation', **self.font_subtitle)
+        Lb_map.grid(row = 16, column = 0, columnspan = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W)
+        self.Cb_itp = ttk.Combobox(fr_sf, values = self.g_itp, background = "#e6e6e6", state = "readonly", width = 10)
         self.Cb_itp.set(self.g_itp[0])
-        self.Cb_itp.grid(row = 15, column = 0, columnspan = 2, padx = 10, pady = 10, ipadx = 5, ipady = 5, sticky = W+E)
+        self.Cb_itp.grid(row = 17, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
 
         # self.FDC_graph = Figure(figsize=(5, 5), dpi=100)
         # self.canv = FigureCanvasTkAgg(self.FDC_graph, self.fr_6)
@@ -211,6 +245,7 @@ class MVis_UI(Tk):
         self.En_col2.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.En_col2, self.Lb_col2))
         self.En_col2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.En_col2, self.Lb_col2))
         self.bind("<3>", self.show_menucontext)
+        self.bind('<Double-Button-1>', self.toggle_fullscreen)
         self.bind("<Control_R>", lambda event: self.exit())
 
 # UI mainloop
@@ -258,6 +293,15 @@ class MVis_UI(Tk):
     ''' Show contextual menu '''
     def show_menucontext(self, e):
         self.menucontext.post(e.x_root, e.y_root)
+
+
+    def toggle_fullscreen(self,e):
+        if self.check_fullscreen:
+            self.check_fullscreen = False
+            self.attributes('-fullscreen', self.check_fullscreen)
+        else:
+            self.check_fullscreen = True
+            self.attributes('-fullscreen', self.check_fullscreen)
 
 
     ''' Exit function '''
