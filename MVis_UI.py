@@ -18,6 +18,8 @@ import numpy as np
 import os
 import gc
 
+import MVis_utils as MV_utils
+
 
 
 # ================= Program parameters ==========
@@ -218,13 +220,6 @@ class MVis_UI(Tk):
         self.Cb_itp.set(self.g_itp[0])
         self.Cb_itp.grid(row = 17, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
 
-        # self.FDC_graph = Figure(figsize=(5, 5), dpi=100)
-        # self.canv = FigureCanvasTkAgg(self.FDC_graph, self.fr_6)
-        # self.toolbar = NavigationToolbar2Tk(self.canv, self.fr_7)
-        # self.canv.get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
-        # self.canv.get_tk_widget().place
-        # self.canv._tkcanvas.pack(side = TOP, fill = BOTH, expand = True)
-
 # UI contextual menu
         self.menucontext = Menu(self, tearoff = 0)
         self.menucontext.add_command(label = "About...", command = lambda : print('Author: '
@@ -254,6 +249,18 @@ class MVis_UI(Tk):
 
 
 # Additional functions of the class
+
+    ''' Main function of the app, allocate map in the figure in graph frame '''
+    def map_visualizer(self, map_values, map_type):
+        
+        self.FDC_graph = Figure(figsize=(5, 5), dpi=100)
+        self.canv = FigureCanvasTkAgg(self.FDC_graph, self.fr_6)
+        self.toolbar = NavigationToolbar2Tk(self.canv, self.fr_7)
+        self.canv.get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
+        self.canv.get_tk_widget().place
+        self.canv._tkcanvas.pack(side = TOP, fill = BOTH, expand = True)
+
+
     ''' Source directory selection function '''
     def source_selection(self, event = 0):
         adress = filedialog.askdirectory(initialdir = "", title = "FF Explorer, root path selection")
@@ -261,6 +268,7 @@ class MVis_UI(Tk):
             self.source.set(adress)
             self.lab_selection.pack_forget()
             self.Bt_reset.config(state = NORMAL)
+            MV_map, type_map = MV_utils.MV_reader(adress)
 
 
     ''' Change input values with up and down keys '''
