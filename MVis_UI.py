@@ -82,15 +82,15 @@ class MVis_UI(Tk):
         self.val_rootmin = DoubleVar(value = 0)
         self.val_rootmax = DoubleVar(value = 100)
         self.val_min = DoubleVar(value = 0)
-        self.val_sweep1 = DoubleVar(value = 0)
-        self.val_max = DoubleVar(value = 0)
-        self.val_sweep2 = DoubleVar(value = 0)
+        # self.val_sweep1 = DoubleVar(value = 0)
+        self.val_max = DoubleVar(value = self.val_rootmax.get())
+        # self.val_sweep2 = DoubleVar(value = self.val_rootmax.get())
         self.col_rootmin = DoubleVar(value = 0)
         self.col_rootmax = DoubleVar(value = 100)
         self.col_min = DoubleVar(value = 0)
-        self.col_sweep1 = DoubleVar(value = 0)
-        self.col_max = DoubleVar(value = 0)
-        self.col_sweep2 = DoubleVar(value = 0)
+        # self.col_sweep1 = DoubleVar(value = 0)
+        self.col_max = DoubleVar(value = self.col_rootmax.get())
+        # self.col_sweep2 = DoubleVar(value = self.col_rootmax.get())
         self.g_itp = sorted(list(plt.matplotlib.image.interpolations_names))
 
 # UI frame organization
@@ -141,7 +141,7 @@ class MVis_UI(Tk):
         # Subsection for changing map's minimum value
         Subtitle_val1 = Label(fr_sf, text = 'Min.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
         Subtitle_val1.grid(row = 1, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_val1 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_val1 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_min, bd = 2, orient = HORIZONTAL, **self.syle_scale)
         Sc_val1.grid(row = 1, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
         self.En_val1 = Entry(fr_sf, textvariable = self.val_min, **self.font_entry, width = 11)
         self.En_val1.grid(row = 2, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
@@ -153,7 +153,7 @@ class MVis_UI(Tk):
         # Subsection for changing map's maximum value
         Subtitle_val2 = Label(fr_sf, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
         Subtitle_val2.grid(row = 3, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_val2 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep2, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_val2 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_max, bd = 2, orient = HORIZONTAL, **self.syle_scale)
         Sc_val2.grid(row = 3, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
         self.En_val2 = Entry(fr_sf, textvariable = self.val_max, **self.font_entry, width = 11)
         self.En_val2.grid(row = 4, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
@@ -173,7 +173,7 @@ class MVis_UI(Tk):
         # Subsection for changing colormap's minimum value
         Subtitle_col1 = Label(fr_sf, text = 'Min.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
         Subtitle_col1.grid(row = 7, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_col1 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_col1 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_min, bd = 2, orient = HORIZONTAL, **self.syle_scale)
         Sc_col1.grid(row = 7, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
         self.En_col1 = Entry(fr_sf, textvariable = self.col_min, **self.font_entry, width = 11)
         self.En_col1.grid(row = 8, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
@@ -185,7 +185,7 @@ class MVis_UI(Tk):
         # Subsection for changing colormap's maximum value
         Subtitle_col2 = Label(fr_sf, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
         Subtitle_col2.grid(row = 9, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_col2 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_sweep2, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_col2 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_max, bd = 2, orient = HORIZONTAL, **self.syle_scale)
         Sc_col2.grid(row = 9, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
         self.En_col2 = Entry(fr_sf, textvariable = self.col_max, **self.font_entry, width = 11)
         self.En_col2.grid(row = 10, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
@@ -227,18 +227,18 @@ class MVis_UI(Tk):
         self.menucontext.add_command(label = "Exit", command = self.exit)
 
 # UI bindings
-        self.En_val1.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.En_val1, self.Lb_val1))
-        self.En_val1.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.En_val1, self.Lb_val1))
-        self.En_val1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.En_val1, self.Lb_val1))
-        self.En_val2.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.En_val2, self.Lb_val2))
-        self.En_val2.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.En_val2, self.Lb_val2))
-        self.En_val2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.En_val2, self.Lb_val2))
-        self.En_col1.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.En_col1, self.Lb_col1))
-        self.En_col1.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.En_col1, self.Lb_col1))
-        self.En_col1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.En_col1, self.Lb_col1))
-        self.En_col2.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.En_col2, self.Lb_col2))
-        self.En_col2.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.En_col2, self.Lb_col2))
-        self.En_col2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.En_col2, self.Lb_col2))
+        self.En_val1.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.Lb_val1))
+        self.En_val1.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.val_min, self.Lb_val1))
+        self.En_val1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.Lb_val1))
+        self.En_val2.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.Lb_val2))
+        self.En_val2.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.Lb_val2))
+        self.En_val2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.Lb_val2))
+        self.En_col1.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.Lb_col1))
+        self.En_col1.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.Lb_col1))
+        self.En_col1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.Lb_col1))
+        self.En_col2.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.Lb_col2))
+        self.En_col2.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.Lb_col2))
+        self.En_col2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.Lb_col2))
         self.bind("<3>", self.show_menucontext)
         self.bind('<Double-Button-1>', self.toggle_fullscreen)
         self.bind("<Control_R>", lambda event: self.exit())
@@ -263,16 +263,18 @@ class MVis_UI(Tk):
 
     ''' Source directory selection function '''
     def source_selection(self, event = 0):
-        adress = filedialog.askdirectory(initialdir = "", title = "FF Explorer, root path selection")
+        adress = filedialog.askopenfilename(initialdir = "", title = "FF Explorer, root path selection", filetypes = [('Text file', '.txt .dat')])
         if adress != '':
             self.source.set(adress)
             self.lab_selection.pack_forget()
             self.Bt_reset.config(state = NORMAL)
             MV_map, type_map = MV_utils.MV_reader(adress)
+            print(type_map, end = '\n\n')
+            print(MV_map)
 
 
     ''' Change input values with up and down keys '''
-    def change_values(self, event, e, values, lab, order):
+    def change_values(self, event, e, values, order):
         decimals = len(str(values[2].get()).split('.')[-1]) if order['text'] == '...' else -int(order['text'])
         new_val = np.round(values[2].get() + e*10**(-decimals), decimals)
         if values[0] <= new_val <= values[1]:
