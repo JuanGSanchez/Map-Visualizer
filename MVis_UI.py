@@ -145,7 +145,7 @@ class MVis_UI(Tk):
         # Subsection for changing map's minimum value
         Subtitle_val1 = Label(fr_sf, text = 'Min.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
         Subtitle_val1.grid(row = 1, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_val1 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_val1 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep1, command = lambda event: self.sweep_values(self.En_val1.winfo_name(), self.val_sweep1, self.val_min), bd = 2, orient = HORIZONTAL, **self.syle_scale)
         Sc_val1.grid(row = 1, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
         self.En_val1 = Entry(fr_sf, name = 'val_1', textvariable = self.val_min, **self.font_entry, width = 11)
         self.En_val1.grid(row = 2, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
@@ -157,7 +157,7 @@ class MVis_UI(Tk):
         # Subsection for changing map's maximum value
         Subtitle_val2 = Label(fr_sf, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
         Subtitle_val2.grid(row = 3, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_val2 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep2, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_val2 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.val_sweep2, command = lambda event: self.sweep_values(self.En_val2.winfo_name(), self.val_sweep2, self.val_max), bd = 2, orient = HORIZONTAL, **self.syle_scale)
         Sc_val2.grid(row = 3, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
         self.En_val2 = Entry(fr_sf, name = 'val_2', textvariable = self.val_max, **self.font_entry, width = 11)
         self.En_val2.grid(row = 4, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
@@ -177,7 +177,7 @@ class MVis_UI(Tk):
         # Subsection for changing colormap's minimum value
         Subtitle_col1 = Label(fr_sf, text = 'Min.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
         Subtitle_col1.grid(row = 7, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_col1 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_sweep1, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_col1 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_sweep1, command = lambda event: self.sweep_values(self.En_col1.winfo_name(), self.col_sweep1, self.col_min), bd = 2, orient = HORIZONTAL, **self.syle_scale)
         Sc_col1.grid(row = 7, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
         self.En_col1 = Entry(fr_sf, name = 'col_1', textvariable = self.col_min, **self.font_entry, width = 11)
         self.En_col1.grid(row = 8, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
@@ -189,7 +189,7 @@ class MVis_UI(Tk):
         # Subsection for changing colormap's maximum value
         Subtitle_col2 = Label(fr_sf, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
         Subtitle_col2.grid(row = 9, rowspan = 2, column = 3, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = N+S)
-        Sc_col2 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_sweep2, bd = 2, orient = HORIZONTAL, **self.syle_scale)
+        Sc_col2 = Scale(fr_sf, from_ = self.val_rootmin.get(), to = self.val_rootmax.get(), variable = self.col_sweep2, command = lambda event: self.sweep_values(self.En_col2.winfo_name(), self.col_sweep2, self.col_max), bd = 2, orient = HORIZONTAL, **self.syle_scale)
         Sc_col2.grid(row = 9, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
         self.En_col2 = Entry(fr_sf, name = 'col_2', textvariable = self.col_max, **self.font_entry, width = 11)
         self.En_col2.grid(row = 10, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
@@ -313,6 +313,11 @@ class MVis_UI(Tk):
             self.set_values(label)
 
 
+    def sweep_values(self, lab, sweep_val, val):
+        val.set(sweep_val.get())
+        self.set_values(lab)
+
+
     ''' Check if there is a number in the tkinter variable '''
     def check_value(self, new_val, old_val):
         try:
@@ -329,28 +334,28 @@ class MVis_UI(Tk):
                     self.val_min.set(self.val_min_old.get())
                 else:
                     self.val_min_old.set(self.val_min.get())
-                    self.val_sweep1.set(self.val_min.get())
+                self.val_sweep1.set(self.val_min.get())
             case 'val_2':
                 self.check_value(self.val_max, self.val_max_old)
                 if self.val_min.get() >= self.val_max.get():
                     self.val_max.set(self.val_max_old.get())
                 else:
                     self.val_max_old.set(self.val_max.get())
-                    self.val_sweep2.set(self.val_max.get())
+                self.val_sweep2.set(self.val_max.get())
             case 'col_1':
                 self.check_value(self.col_min, self.col_min_old)
                 if self.col_min.get() >= self.col_max.get():
                     self.col_min.set(self.col_min_old.get())
                 else:
                     self.col_min_old.set(self.col_min.get())
-                    self.col_sweep1.set(self.col_min.get())
+                self.col_sweep1.set(self.col_min.get())
             case 'col_2':
                 self.check_value(self.col_max, self.col_max_old)
                 if self.col_min.get() >= self.col_max.get():
                     self.col_max.set(self.col_max_old.get())
                 else:
                     self.col_max_old.set(self.col_max.get())
-                    self.col_sweep2.set(self.col_max.get())
+                self.col_sweep2.set(self.col_max.get())
 
 
     ''' Show contextual menu '''
