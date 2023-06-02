@@ -11,7 +11,6 @@ Juan García Sánchez, 2023
 
 import numpy as np
 import os
-import zipfile
 import gc
 
 

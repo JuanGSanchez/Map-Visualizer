@@ -151,8 +151,6 @@ class MVis_UI(Tk):
         self.En_val1.grid(row = 2, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
         self.Lb_val1 = Label(fr_sf, text = "...", bg = 'white', relief = GROOVE, width = 2)
         self.Lb_val1.grid(row = 2, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
-        self.Lb_val1.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_val1))
-        self.Lb_val1.bind('<1>', lambda event: self.Lb_val1.config(text = '...'))
 
         # Subsection for changing map's maximum value
         Subtitle_val2 = Label(fr_sf, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
@@ -163,8 +161,6 @@ class MVis_UI(Tk):
         self.En_val2.grid(row = 4, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
         self.Lb_val2 = Label(fr_sf, text = "...", bg = 'white', relief = GROOVE, width = 2)
         self.Lb_val2.grid(row = 4, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
-        self.Lb_val2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_val2))
-        self.Lb_val2.bind('<1>', lambda event: self.Lb_val2.config(text = '...'))
 
         # Spacing between sections
         Lb_sep1 = Label(fr_sf, bg = '#bfbfbf')
@@ -183,8 +179,6 @@ class MVis_UI(Tk):
         self.En_col1.grid(row = 8, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
         self.Lb_col1 = Label(fr_sf, text = "...", bg = 'white', relief = GROOVE, width = 2)
         self.Lb_col1.grid(row = 8, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
-        self.Lb_col1.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col1))
-        self.Lb_col1.bind('<1>', lambda event: self.Lb_col1.config(text = '...'))
 
         # Subsection for changing colormap's maximum value
         Subtitle_col2 = Label(fr_sf, text = 'Max.', justify = CENTER, relief = RIDGE, **self.font_subtitle)
@@ -195,8 +189,6 @@ class MVis_UI(Tk):
         self.En_col2.grid(row = 10, column = 0, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = W)
         self.Lb_col2 = Label(fr_sf, text = "...", bg = 'white', relief = GROOVE, width = 2)
         self.Lb_col2.grid(row = 10, column = 1, padx = 10, pady = 3, ipadx = 5, ipady = 5, sticky = E)
-        self.Lb_col2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col2))
-        self.Lb_col2.bind('<1>', lambda event: self.Lb_col2.config(text = '...'))
 
         # Spacing between sections
         Lb_sep2 = Label(fr_sf, bg = '#bfbfbf')
@@ -226,7 +218,8 @@ class MVis_UI(Tk):
 
 # UI contextual menu
         self.menucontext = Menu(self, tearoff = 0)
-        self.menucontext.add_command(label = "About...", command = lambda : print('Author: '
+        self.menucontext.add_command(label = "Fullscreen", command = self.toggle_fullscreen)
+        self.menucontext.add_command(label = "About...", command = lambda: print('Author: '
                                     + __author__ + '\nVersion: ' + __version__ + '\nLicense: ' + __license__))
         self.menucontext.add_command(label = "Exit", command = self.exit)
 
@@ -236,23 +229,34 @@ class MVis_UI(Tk):
         self.En_val1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.val_min], self.En_val1.winfo_name(), self.Lb_val1))
         self.En_val1.bind("<KeyRelease>", lambda event: self.set_values(self.En_val1.winfo_name()))
 
+        self.Lb_val1.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_val1))
+        self.Lb_val1.bind('<1>', lambda event: self.Lb_val1.config(text = '...'))
+
         self.En_val2.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.En_val2.winfo_name(), self.Lb_val2))
         self.En_val2.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.En_val2.winfo_name(), self.Lb_val2))
         self.En_val2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.val_max], self.En_val2.winfo_name(), self.Lb_val2))
         self.En_val2.bind("<KeyRelease>", lambda event: self.set_values(self.En_val2.winfo_name()))
+
+        self.Lb_val2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_val2))
+        self.Lb_val2.bind('<1>', lambda event: self.Lb_val2.config(text = '...'))
 
         self.En_col1.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.En_col1.winfo_name(), self.Lb_col1))
         self.En_col1.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.En_col1.winfo_name(), self.Lb_col1))
         self.En_col1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.col_min], self.En_col1.winfo_name(), self.Lb_col1))
         self.En_col1.bind("<KeyRelease>", lambda event: self.set_values(self.En_col1.winfo_name()))
 
+        self.Lb_col1.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col1))
+        self.Lb_col1.bind('<1>', lambda event: self.Lb_col1.config(text = '...'))
+
         self.En_col2.bind("<Up>", lambda event: self.change_values(event, 1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.En_col2.winfo_name(), self.Lb_col2))
         self.En_col2.bind("<Down>", lambda event: self.change_values(event, -1, [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.En_col2.winfo_name(), self.Lb_col2))
         self.En_col2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.val_rootmin.get(), self.val_rootmax.get(), self.col_max], self.En_col2.winfo_name(), self.Lb_col2))
         self.En_col2.bind("<KeyRelease>", lambda event: self.set_values(self.En_col2.winfo_name()))
 
-        self.bind("<3>", self.show_menucontext)
-        self.bind('<Double-Button-1>', self.toggle_fullscreen)
+        self.Lb_col2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col2))
+        self.Lb_col2.bind('<1>', lambda event: self.Lb_col2.config(text = '...'))
+
+        fr_sf.bind("<3>", self.show_menucontext)
         self.bind("<Control_R>", lambda event: self.exit())
 
 # UI mainloop
@@ -363,7 +367,7 @@ class MVis_UI(Tk):
         self.menucontext.post(e.x_root, e.y_root)
 
 
-    def toggle_fullscreen(self,e):
+    def toggle_fullscreen(self):
         if self.check_fullscreen:
             self.check_fullscreen = False
             self.attributes('-fullscreen', self.check_fullscreen)
