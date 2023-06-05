@@ -55,7 +55,6 @@ class MVis_UI(Tk):
         y_pos = (self.winfo_screenheight() - size_frame - size_height - self.winfo_rooty() + self.winfo_y())//2
         self.geometry('{}x{}+{}+{}'.format(str(size_frame + size_width), str(size_frame + size_height), str(x_pos), str(y_pos)))
         self.minsize(size_frame + size_width, size_frame + size_height)
-        # self.resizable(False, False)
         self.lift()
         self.focus_force()
         icon = PhotoImage(file =  __rootf__ + "/Logo MVis.png")
@@ -108,14 +107,12 @@ class MVis_UI(Tk):
         fr_selector.place(relx = 0)
         fr_options.place(rely = 0, width = size_width, relheight = 1)
 
-        self.FDC_graph = Figure(figsize = (5,5), dpi = 100, facecolor = 'white')
-
         # Automatic readjustment of frames with changes in window's size
         def cf_frames(event):
             self.fr_graph.place_configure(width = self.winfo_width() - size_width, height = self.winfo_height() - size_height)
             fr_selector.place_configure(y = self.winfo_height() - size_height, width = self.winfo_width() - size_width, height = size_height)
             fr_options.place_configure(x = self.winfo_width() - size_width)
-            self.FDC_graph.tight_layout(pad = 1.0, w_pad = 1.0, h_pad = 1.0)
+            # self.MV_fig.tight_layout(pad = 1.0, w_pad = 1.0, h_pad = 1.0)
         self.bind("<Configure>", cf_frames)
 
         # Incorporation of a scrollbar in the options frame
@@ -219,6 +216,12 @@ class MVis_UI(Tk):
         self.Cb_itp.set(self.g_itp[0])
         self.Cb_itp.grid(row = 17, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
 
+# UI figure
+        # self.MV_fig = Figure(dpi = 100, facecolor = 'white', tight_layout = True)
+        # # self.MV_plot = self.MV_fig.add_subplot()
+        # data = np.zeros((10,10))
+        # self.MV_show = plt.imshow(data, vmin = 0, vmax = 1, origin = 'upper')
+
 # UI contextual menu
         self.menucontext = Menu(self, tearoff = 0)
         self.menucontext.add_command(label = "Fullscreen", command = self.toggle_fullscreen)
@@ -259,6 +262,9 @@ class MVis_UI(Tk):
         self.Lb_col2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col2))
         self.Lb_col2.bind('<1>', lambda event: self.Lb_col2.config(text = '...'))
 
+        self.Cb_map.bind("<<ComboboxSelected>>", lambda event: self.map_cmap())
+        self.Cb_itp.bind("<<ComboboxSelected>>", lambda event: self.map_interpolation())
+
         fr_sf.bind("<3>", self.show_menucontext)
         self.bind("<Control_R>", lambda event: self.exit())
 
@@ -272,6 +278,7 @@ class MVis_UI(Tk):
     ''' Main function of the app, allocate map in the figure in graph frame '''
     def map_visualizer(self, map_values, map_type):
 
+        # Setting variables to the given array
         self.rootmin.set(np.nanmin(map_values))
         self.rootmax.set(np.nanmax(map_values))
         self.val_min.set(self.rootmin.get())
@@ -287,31 +294,57 @@ class MVis_UI(Tk):
         self.col_max_old.set(self.col_max.get())
         self.col_sweep2.set(self.col_max.get())
 
+        # Setting scale widgets to the given array
         self.Sc_val1.config(from_ = self.rootmin.get(), to = self.rootmax.get())
         self.Sc_val2.config(from_ = self.rootmin.get(), to = self.rootmax.get())
         self.Sc_col1.config(from_ = self.rootmin.get(), to = self.rootmax.get())
         self.Sc_col2.config(from_ = self.rootmin.get(), to = self.rootmax.get())
 
-        self.FDC_graph.clf()
-        gr = self.FDC_graph.add_subplot()
-        gr.imshow(map_values, cmap = self.Cb_map.get(), vmin = self.rootmin.get(), vmax = self.rootmax.get(), origin = 'lower', interpolation = self.Cb_itp.get())
-        # gr.set_xlabel('x (\u03bcm)', fontname = 'Arial', fontsize = 20, labelpad = 10)
-        # gr.set_ylabel('y (\u03bcm)', fontname = 'Arial', fontsize = 20, labelpad = 10)
-        # gr.xaxis.set_tick_params(labelsize = 15)
-        # gr.yaxis.set_tick_params(labelsize = 15)
-        mp = plt.cm.ScalarMappable(norm = None, cmap = self.Cb_map.get())
-        mp.set_array([self.rootmin.get(), self.rootmax.get()])
-        b1 = self.FDC_graph.colorbar(mp, orientation = 'vertical', format = '%.2f')
-        b1.ax.yaxis.set_tick_params(labelsize = 15)
+        self.MV_fig = Figure(dpi = 100, facecolor = 'white', tight_layout = True)
+        self.MV_plot = self.MV_fig.add_subplot()
+        # data = np.zeros((10,10))
+        # self.MV_show = plt.imshow(data, vmin = 0, vmax = 1, origin = 'upper')
 
-        self.canv = FigureCanvasTkAgg(self.FDC_graph, self.fr_graph)
-        self.canv.draw()
-        self.canv.get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
+        # self.MV_fig.clf()
+        # self.MV_show = plt.imshow((map_values - self.rootmin.get())/(self.rootmax.get() - self.rootmin.get()), vmin = 0, vmax = 1, origin = 'upper')
+        # # self.MV_show.set_data((map_values - self.rootmin.get())/(self.rootmax.get() - self.rootmin.get()))
+        # self.MV_show.set_cmap(self.Cb_map.get())
+        # self.MV_show.set_interpolation(self.Cb_itp.get())
+        self.MV_show = self.MV_plot.imshow(map_values, cmap = self.Cb_map.get(), vmin = self.rootmin.get(), vmax = self.rootmax.get(), origin = 'lower', interpolation = self.Cb_itp.get())
+        # MV_plot.set_xlabel('x (\u03bcm)', fontname = 'Arial', fontsize = 20, labelpad = 10)
+        # MV_plot.set_ylabel('y (\u03bcm)', fontname = 'Arial', fontsize = 20, labelpad = 10)
+        # MV_plot.xaxis.set_tick_params(labelsize = 15)
+        # MV_plot.yaxis.set_tick_params(labelsize = 15)
+
+        self.MV_mp = plt.cm.ScalarMappable(norm = None, cmap = self.Cb_map.get())
+        self.MV_mp.set_array([self.rootmin.get(), self.rootmax.get()])
+        self.MV_bar = self.MV_fig.colorbar(self.MV_mp, orientation = 'vertical', format = '%.2f')
+        self.MV_bar.ax.yaxis.set_tick_params(labelsize = 15)
+
+        self.canv = FigureCanvasTkAgg(self.MV_fig, self.fr_graph)
         self.toolbar = NavigationToolbar2Tk(self.canv, self.fr_graph)
         self.toolbar.children['!button4'].pack_forget()
+        self.canv.draw()
         self.toolbar.update()
+        self.canv.get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
         self.canv._tkcanvas.pack(side = TOP, fill = BOTH, expand = True)   # This must be the graph
 
+
+    def map_cmap(self):
+        try:
+            self.MV_show.set_cmap(self.Cb_map.get())
+            self.MV_mp.set_cmap(self.Cb_map.get())
+            self.canv.draw()
+        except:
+            pass
+
+
+    def map_interpolation(self):
+        try:
+            self.MV_show.set_interpolation(self.Cb_itp.get())
+            self.canv.draw()
+        except:
+            pass
 
 
     ''' Source directory selection function '''
