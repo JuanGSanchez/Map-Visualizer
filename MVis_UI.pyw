@@ -278,6 +278,9 @@ class MVis_UI(Tk):
     ''' Main function of the app, allocate map in the figure in graph frame '''
     def map_visualizer(self, map_values, map_type):
 
+        # Setting a global variable to work with the map array throughout the functions
+        self.map_array = map_values
+
         # Setting variables to the given array
         self.rootmin.set(np.nanmin(map_values))
         self.rootmax.set(np.nanmax(map_values))
@@ -308,8 +311,6 @@ class MVis_UI(Tk):
         # self.MV_fig.clf()
         # self.MV_show = plt.imshow((map_values - self.rootmin.get())/(self.rootmax.get() - self.rootmin.get()), vmin = 0, vmax = 1, origin = 'upper')
         # # self.MV_show.set_data((map_values - self.rootmin.get())/(self.rootmax.get() - self.rootmin.get()))
-        # self.MV_show.set_cmap(self.Cb_map.get())
-        # self.MV_show.set_interpolation(self.Cb_itp.get())
         self.MV_show = self.MV_plot.imshow(map_values, cmap = self.Cb_map.get(), vmin = self.rootmin.get(), vmax = self.rootmax.get(), origin = 'lower', interpolation = self.Cb_itp.get())
         # MV_plot.set_xlabel('x (\u03bcm)', fontname = 'Arial', fontsize = 20, labelpad = 10)
         # MV_plot.set_ylabel('y (\u03bcm)', fontname = 'Arial', fontsize = 20, labelpad = 10)
@@ -317,8 +318,8 @@ class MVis_UI(Tk):
         # MV_plot.yaxis.set_tick_params(labelsize = 15)
 
         self.MV_mp = plt.cm.ScalarMappable(norm = None, cmap = self.Cb_map.get())
-        self.MV_mp.set_array([self.rootmin.get(), self.rootmax.get()])
-        self.MV_bar = self.MV_fig.colorbar(self.MV_mp, orientation = 'vertical', format = '%.2f')
+        self.MV_mp.set_clim(vmin = self.rootmin.get(), vmax = self.rootmax.get())
+        self.MV_bar = self.MV_fig.colorbar(self.MV_mp, ax = self.MV_plot, orientation = 'vertical', format = '%.2f')
         self.MV_bar.ax.yaxis.set_tick_params(labelsize = 15)
 
         self.canv = FigureCanvasTkAgg(self.MV_fig, self.fr_graph)
@@ -330,6 +331,28 @@ class MVis_UI(Tk):
         self.canv._tkcanvas.pack(side = TOP, fill = BOTH, expand = True)   # This must be the graph
 
 
+    ''' Function to change array's value range '''
+    def map_range(self):
+        try:
+            map_copy = np.where(self.map_array < self.val_min.get(), self.val_min.get(), self.map_array)
+            map_copy = np.where(map_copy > self.val_max.get(), self.val_max.get(), map_copy)
+            self.MV_show.set_data(map_copy)
+            self.canv.draw()
+        except:
+            pass
+
+
+    ''' Function to change array's colormap range '''
+    def map_colorange(self):
+        try:
+            self.MV_mp.set_clim(vmin = self.col_min.get(), vmax = self.col_max.get())
+            self.MV_show.set_clim(vmin = self.col_min.get(), vmax = self.col_max.get())
+            self.canv.draw()
+        except:
+            pass
+
+
+    ''' Function to change array's cmap'''
     def map_cmap(self):
         try:
             self.MV_show.set_cmap(self.Cb_map.get())
@@ -339,6 +362,7 @@ class MVis_UI(Tk):
             pass
 
 
+    ''' Function to change array's interpolation '''
     def map_interpolation(self):
         try:
             self.MV_show.set_interpolation(self.Cb_itp.get())
@@ -410,6 +434,7 @@ class MVis_UI(Tk):
                 else:
                     self.val_min_old.set(self.val_min.get())
                 self.val_sweep1.set(self.val_min.get())
+                self.map_range()
             case 'val_2':
                 self.check_value(self.val_max, self.val_max_old)
                 if self.val_min.get() >= self.val_max.get():
@@ -417,6 +442,7 @@ class MVis_UI(Tk):
                 else:
                     self.val_max_old.set(self.val_max.get())
                 self.val_sweep2.set(self.val_max.get())
+                self.map_range()
             case 'col_1':
                 self.check_value(self.col_min, self.col_min_old)
                 if self.col_min.get() >= self.col_max.get():
@@ -424,6 +450,7 @@ class MVis_UI(Tk):
                 else:
                     self.col_min_old.set(self.col_min.get())
                 self.col_sweep1.set(self.col_min.get())
+                self.map_colorange()
             case 'col_2':
                 self.check_value(self.col_max, self.col_max_old)
                 if self.col_min.get() >= self.col_max.get():
@@ -431,6 +458,7 @@ class MVis_UI(Tk):
                 else:
                     self.col_max_old.set(self.col_max.get())
                 self.col_sweep2.set(self.col_max.get())
+                self.map_colorange()
 
 
     ''' Show contextual menu '''
