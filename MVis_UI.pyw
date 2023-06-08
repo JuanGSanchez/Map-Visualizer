@@ -73,6 +73,7 @@ class MVis_UI(Tk):
         self.font_subtitle = {'bg' : '#bfbfbf', 'fg' : 'black', 'font' : 'Arial 12 bold'}
         self.font_entry = {'bg' : 'white', 'fg' : 'black', 'font' : 'Verdana 11'}
         self.font_button = {'bg' : 'white', 'fg' : 'black', 'font' : 'Verdana 14'}
+        self.font_lab = {'bg' : '#cccccc', 'fg' : 'black', 'font' : 'Verdana 12'}
         self.font_text = {'bg' : '#e6e6e6', 'fg' : 'black', 'font' : 'Verdana 18'}
         self.font_man = {'bg' : 'darkblue', 'fg' : 'white', 'font' : "Arial 11"}
 
@@ -136,6 +137,10 @@ class MVis_UI(Tk):
         '''Auxiliar frame widgets'''
         self.Bt_reset = Button(fr_selector, text = 'Open new map', command = self.source_selection, cursor = 'hand2', **self.font_button, state = DISABLED)
         self.Bt_reset.pack(anchor = CENTER, expand = False, pady = 10)
+
+        self.lab_xpixel = Label(fr_selector, text = 'X = ', **self.font_lab)
+        self.lab_ypixel = Label(fr_selector, text = 'Y = ', **self.font_lab)
+        self.lab_value = Label(fr_selector, text = 'val =  ', **self.font_lab)
 
         '''Options frame'''
         # Map value range section, title
@@ -281,7 +286,7 @@ class MVis_UI(Tk):
         # Setting a global variable to work with the map array throughout the functions
         self.map_array = map_values
         # Axis extension of the map
-        map_extent = [0.5, np.shape(map_values)[0] + 0.5, 0.5, np.shape(map_values)[1] + 0.5]
+        map_extent = [1, np.shape(map_values)[0] + 1, 1, np.shape(map_values)[1] + 1]
 
         # Setting variables to the given array
         self.rootmin.set(np.nanmin(map_values))
@@ -333,6 +338,25 @@ class MVis_UI(Tk):
         self.toolbar.update()
         self.canv.get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
         self.canv._tkcanvas.pack(side = TOP, fill = BOTH, expand = True)   # This must be the graph
+
+        self.lab_xpixel.place(x = 10, y = 20)
+        self.lab_ypixel.place(x = 10, y = 50)
+        self.lab_value.place(x = 10, y = 80)
+
+        self.canv.mpl_connect('motion_notify_event', self.map_pixelinfo)
+
+
+    ''' Function to get and show information from pixels in graph '''
+    def map_pixelinfo(self, event):
+        value = self.MV_show.get_cursor_data(event)
+        if None not in [event.xdata, value]:
+            self.lab_xpixel.config(text = 'X = {}'.format(int(event.xdata)))
+            self.lab_ypixel.config(text = 'Y = {}'.format(int(event.ydata)))
+            self.lab_value.config(text = 'val = {}'.format(value))
+        else:
+            self.lab_xpixel.config(text = 'X = ')
+            self.lab_ypixel.config(text = 'Y = ')
+            self.lab_value.config(text = 'val = ')
 
 
     ''' Function to change array's value range '''
