@@ -280,6 +280,8 @@ class MVis_UI(Tk):
 
         # Setting a global variable to work with the map array throughout the functions
         self.map_array = map_values
+        # Axis extension of the map
+        map_extent = [0.5, np.shape(map_values)[0] + 0.5, 0.5, np.shape(map_values)[1] + 0.5]
 
         # Setting variables to the given array
         self.rootmin.set(np.nanmin(map_values))
@@ -311,9 +313,9 @@ class MVis_UI(Tk):
         # self.MV_fig.clf()
         # self.MV_show = plt.imshow((map_values - self.rootmin.get())/(self.rootmax.get() - self.rootmin.get()), vmin = 0, vmax = 1, origin = 'upper')
         # # self.MV_show.set_data((map_values - self.rootmin.get())/(self.rootmax.get() - self.rootmin.get()))
-        self.MV_show = self.MV_plot.imshow(map_values, cmap = self.Cb_map.get(), vmin = self.rootmin.get(), vmax = self.rootmax.get(), origin = 'lower', interpolation = self.Cb_itp.get())
-        # MV_plot.set_xlabel('x (\u03bcm)', fontname = 'Arial', fontsize = 20, labelpad = 10)
-        # MV_plot.set_ylabel('y (\u03bcm)', fontname = 'Arial', fontsize = 20, labelpad = 10)
+        self.MV_show = self.MV_plot.imshow(map_values, cmap = self.Cb_map.get(), vmin = self.rootmin.get(), vmax = self.rootmax.get(), origin = 'lower', interpolation = self.Cb_itp.get(), extent = map_extent)
+        self.MV_plot.tick_params(bottom = False, left = False, labelbottom = False, labelleft = False)
+        # self.MV_plot.set_ylabel('y (\u03bcm)', fontname = 'Arial', fontsize = 20, labelpad = 10)
         # MV_plot.xaxis.set_tick_params(labelsize = 15)
         # MV_plot.yaxis.set_tick_params(labelsize = 15)
 
@@ -325,6 +327,8 @@ class MVis_UI(Tk):
         self.canv = FigureCanvasTkAgg(self.MV_fig, self.fr_graph)
         self.toolbar = NavigationToolbar2Tk(self.canv, self.fr_graph)
         self.toolbar.children['!button4'].pack_forget()
+        # Para revelar sólo números de píxel, necesito sobreescribir el método de la clase...
+        # self.toolbar.mouse_move([3,4])
         self.canv.draw()
         self.toolbar.update()
         self.canv.get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
