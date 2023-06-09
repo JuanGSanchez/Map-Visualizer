@@ -222,6 +222,16 @@ class MVis_UI(Tk):
         self.Cb_itp.grid(row = 17, column = 0, columnspan = 2, padx = 10, pady = 5, ipadx = 5, ipady = 5, sticky = W+E)
 
 # UI figure
+        self.MV_fig = Figure(dpi = 100, facecolor = 'white', tight_layout = True)
+        self.MV_plot = self.MV_fig.add_subplot()
+        self.MV_mp = plt.cm.ScalarMappable(norm = None, cmap = self.Cb_map.get())
+        self.MV_bar = self.MV_fig.colorbar(self.MV_mp, ax = self.MV_plot, orientation = 'vertical', format = '%.2f')
+        self.MV_bar.ax.yaxis.set_tick_params(labelsize = 15)
+
+        self.canv = FigureCanvasTkAgg(self.MV_fig, self.fr_graph)
+        self.toolbar = NavigationToolbar2Tk(self.canv, self.fr_graph)
+        self.toolbar.children['!button4'].pack_forget()
+        self.toolbar._message_label.config(fg = '#f0f0f0')
         # self.MV_fig = Figure(dpi = 100, facecolor = 'white', tight_layout = True)
         # # self.MV_plot = self.MV_fig.add_subplot()
         # data = np.zeros((10,10))
@@ -288,9 +298,17 @@ class MVis_UI(Tk):
         # Axis extension of the map
         map_extent = [1, np.shape(map_values)[0] + 1, 1, np.shape(map_values)[1] + 1]
 
-        # Setting variables to the given array
+        # Minimum and maximum values of the array
         self.rootmin.set(np.nanmin(map_values))
         self.rootmax.set(np.nanmax(map_values))
+
+        # Setting scale widgets to the given array
+        self.Sc_val1.config(from_ = self.rootmin.get(), to = self.rootmax.get())
+        self.Sc_val2.config(from_ = self.rootmin.get(), to = self.rootmax.get())
+        self.Sc_col1.config(from_ = self.rootmin.get(), to = self.rootmax.get())
+        self.Sc_col2.config(from_ = self.rootmin.get(), to = self.rootmax.get())
+
+        # Setting variables to the given array
         self.val_min.set(self.rootmin.get())
         self.val_min_old.set(self.val_min.get())
         self.val_sweep1.set(self.val_min.get())
@@ -304,14 +322,6 @@ class MVis_UI(Tk):
         self.col_max_old.set(self.col_max.get())
         self.col_sweep2.set(self.col_max.get())
 
-        # Setting scale widgets to the given array
-        self.Sc_val1.config(from_ = self.rootmin.get(), to = self.rootmax.get())
-        self.Sc_val2.config(from_ = self.rootmin.get(), to = self.rootmax.get())
-        self.Sc_col1.config(from_ = self.rootmin.get(), to = self.rootmax.get())
-        self.Sc_col2.config(from_ = self.rootmin.get(), to = self.rootmax.get())
-
-        self.MV_fig = Figure(dpi = 100, facecolor = 'white', tight_layout = True)
-        self.MV_plot = self.MV_fig.add_subplot()
         # data = np.zeros((10,10))
         # self.MV_show = plt.imshow(data, vmin = 0, vmax = 1, origin = 'upper')
 
@@ -324,26 +334,56 @@ class MVis_UI(Tk):
         # MV_plot.xaxis.set_tick_params(labelsize = 15)
         # MV_plot.yaxis.set_tick_params(labelsize = 15)
 
-        self.MV_mp = plt.cm.ScalarMappable(norm = None, cmap = self.Cb_map.get())
         self.MV_mp.set_clim(vmin = self.rootmin.get(), vmax = self.rootmax.get())
-        self.MV_bar = self.MV_fig.colorbar(self.MV_mp, ax = self.MV_plot, orientation = 'vertical', format = '%.2f')
-        self.MV_bar.ax.yaxis.set_tick_params(labelsize = 15)
 
-        self.canv = FigureCanvasTkAgg(self.MV_fig, self.fr_graph)
-        self.toolbar = NavigationToolbar2Tk(self.canv, self.fr_graph)
-        self.toolbar.children['!button4'].pack_forget()
-        # Para revelar sólo números de píxel, necesito sobreescribir el método de la clase...
-        # self.toolbar.mouse_move([3,4])
         self.canv.draw()
         self.toolbar.update()
         self.canv.get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
-        self.canv._tkcanvas.pack(side = TOP, fill = BOTH, expand = True)   # This must be the graph
+        self.canv._tkcanvas.pack(side = TOP, fill = BOTH, expand = True)
 
         self.lab_xpixel.place(x = 10, y = 20)
         self.lab_ypixel.place(x = 10, y = 50)
         self.lab_value.place(x = 10, y = 80)
 
         self.canv.mpl_connect('motion_notify_event', self.map_pixelinfo)
+
+
+    ''' Auxiliar function for following maps '''
+    def map_updater(self, map_values, map_type):
+
+        # Setting a global variable to work with the map array throughout the functions
+        self.map_array = map_values
+        # Axis extension of the map
+        map_extent = [1, np.shape(map_values)[0] + 1, 1, np.shape(map_values)[1] + 1]
+
+        # Minimum and maximum values of the array
+        self.rootmin.set(np.nanmin(map_values))
+        self.rootmax.set(np.nanmax(map_values))
+
+        # Setting scale widgets to the given array
+        self.Sc_val1.config(from_ = self.rootmin.get(), to = self.rootmax.get())
+        self.Sc_val2.config(from_ = self.rootmin.get(), to = self.rootmax.get())
+        self.Sc_col1.config(from_ = self.rootmin.get(), to = self.rootmax.get())
+        self.Sc_col2.config(from_ = self.rootmin.get(), to = self.rootmax.get())
+
+        # Setting variables to the given array
+        self.val_min.set(self.rootmin.get())
+        self.val_min_old.set(self.val_min.get())
+        self.val_sweep1.set(self.val_min.get())
+        self.val_max.set(self.rootmax.get())
+        self.val_max_old.set(self.val_max.get())
+        self.val_sweep2.set(self.val_max.get())
+        self.col_min.set(self.rootmin.get())
+        self.col_min_old.set(self.col_min.get())
+        self.col_sweep1.set(self.col_min.get())
+        self.col_max.set(self.rootmax.get())
+        self.col_max_old.set(self.col_max.get())
+        self.col_sweep2.set(self.col_max.get())
+
+        self.MV_show.set_data(self.map_array)
+
+
+
 
 
     ''' Function to get and show information from pixels in graph '''
