@@ -26,7 +26,10 @@ def MV_reader(file):
 def reader_txt(fl):
     try:
         map_result = np.loadtxt(fl)
+        try:
+            map_result[0,0]
+        except:
+            map_result = np.reshape(map_result, (len(map_result), 1))
         return map_result, 0
     except:
-        print('Error, map format not supported.')
         return [], -1

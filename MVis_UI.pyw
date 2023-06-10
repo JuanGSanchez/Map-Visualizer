@@ -292,11 +292,15 @@ class MVis_UI(Tk):
 
     ''' Main function of the app, allocate map in the figure in graph frame '''
     def map_visualizer(self, map_values, map_type):
+        # Check if map has the correct format; if error was identified, function is left
+        if map_type == -1:
+            messagebox.showwarning('Map format error', 'An invalid map format was found inside file.')
+            return
 
         # Setting a global variable to work with the map array throughout the functions
         self.map_array = map_values
         # Axis extension of the map
-        map_extent = [1, np.shape(map_values)[0] + 1, 1, np.shape(map_values)[1] + 1]
+        map_extent = [1, np.shape(map_values)[1] + 1, 1, np.shape(map_values)[0] + 1]
 
         # Minimum and maximum values of the array
         self.rootmin.set(np.nanmin(map_values))
@@ -324,6 +328,7 @@ class MVis_UI(Tk):
 
         # Distinction wether it is the first map to visualize or not, in order to instantiate imshow or just update its data
         if self.Bt_reset['state'] == 'disabled':
+            self.lab_selection.pack_forget()
             self.Bt_reset.config(state = NORMAL)
             self.lab_xpixel.place(x = 10, y = 20)
             self.lab_ypixel.place(x = 10, y = 50)
@@ -339,6 +344,7 @@ class MVis_UI(Tk):
             self.MV_mp.set_clim(vmin = self.rootmin.get(), vmax = self.rootmax.get())
             self.MV_show.set_clim(vmin = self.rootmin.get(), vmax = self.rootmax.get())
             self.MV_show.set_data(map_values)
+            self.MV_show.set_extent(map_extent)
 
         # Update of tkinter's graph widgets
         self.canv.draw()
@@ -403,7 +409,6 @@ class MVis_UI(Tk):
         adress = filedialog.askopenfilename(initialdir = "", title = "FF Explorer, root path selection", filetypes = [('Text file', '.txt .dat')])
         if adress != '':
             self.source.set(adress)
-            self.lab_selection.pack_forget()
             MV_map, type_map = MV_utils.MV_reader(adress)
             self.map_visualizer(MV_map, type_map)
 
