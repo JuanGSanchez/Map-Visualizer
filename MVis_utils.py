@@ -29,7 +29,7 @@ def reader_txt(fl):
         try:
             map_result[0,0]
         except:
-            map_result = np.reshape(map_result, (len(map_result), 1))
+            map_result= [map_result.tolist()]
         return map_result, 0
     except:
         return [], -1
