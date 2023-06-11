@@ -75,7 +75,7 @@ class MVis_UI(Tk):
         self.font_button = {'bg' : 'white', 'fg' : 'black', 'font' : 'Verdana 14'}
         self.font_lab = {'bg' : '#cccccc', 'fg' : 'black', 'font' : 'Verdana 12'}
         self.font_text = {'bg' : '#e6e6e6', 'fg' : 'black', 'font' : 'Verdana 18'}
-        self.font_man = {'bg' : 'darkblue', 'fg' : 'white', 'font' : "Arial 11"}
+        font_man = {'bg' : 'darkblue', 'fg' : 'white', 'font' : "Arial 11"}
 
 # UI variables
         self.source = StringVar(value = '')   # Root path variable
@@ -230,14 +230,33 @@ class MVis_UI(Tk):
         self.MV_mp = plt.cm.ScalarMappable(norm = None, cmap = self.Cb_map.get())
         self.MV_bar = self.MV_fig.colorbar(self.MV_mp, ax = self.MV_plot, orientation = 'vertical', format = '%.2f')
         self.MV_bar.ax.yaxis.set_tick_params(labelsize = 15)
-        # data = np.zeros((10,10))
-        # self.MV_show = plt.imshow(data, vmin = 0, vmax = 1, origin = 'upper')
 
         self.canv = FigureCanvasTkAgg(self.MV_fig, self.fr_graph)
         self.canv.mpl_connect('motion_notify_event', self.map_pixelinfo)
         self.toolbar = NavigationToolbar2Tk(self.canv, self.fr_graph)
         self.toolbar.children['!button4'].pack_forget()
         self.toolbar._message_label.config(fg = '#f0f0f0')
+
+# UI manual
+        text_man1 = 'Move to change range value\nRight-click to set value directly'
+        text_man2 = 'Scroll to change range value.\nRight-click to reset.'
+        text_man3 = 'Scroll to change digit position sweep.\nLeft-click to reset.'
+        text_man4 = "Pixel's X position"
+        text_man5 = "Pixel's Y position"
+        text_man6 = "Pixel's real value"
+        text_man7 = 'Exponent of the range values'
+        fr_man = Toplevel(self, bd= 2, bg = 'darkblue')
+        fr_man.resizable(False, False)
+        fr_man.overrideredirect(True)
+        fr_man.wm_attributes('-alpha', 0.8)
+        fr_man.withdraw()
+        self.fr_lab = Label(fr_man, justify = LEFT, bd = 2, **font_man)
+        self.fr_lab.grid(padx = 1, pady = 1, sticky = W)
+        self.update()
+        self.Sc_val1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_val1.winfo_width() - 2, self.Sc_val1.winfo_height() - 2, 210, 45], text_man1))
+        self.Sc_val2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_val2.winfo_width() - 2, self.Sc_val2.winfo_height() - 2, 210, 45], text_man1))
+        self.Sc_col1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_col1.winfo_width() - 2, self.Sc_col1.winfo_height() - 2, 210, 45], text_man1))
+        self.Sc_col2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_col2.winfo_width() - 2, self.Sc_col2.winfo_height() - 2, 210, 45], text_man1))
 
 # UI contextual menu
         self.menucontext = Menu(self, tearoff = 0)
@@ -503,6 +522,16 @@ class MVis_UI(Tk):
                     self.col_max_old.set(self.col_max.get())
                 self.col_sweep2.set(self.col_max.get())
                 self.map_colorange()
+
+
+    ''' Show manual widget '''
+    def show_manual(self, e, fr, pos, text_man):
+        if 0 < e.x < pos[0] and 0 < e.y < pos[1]:
+            fr.deiconify()
+            self.fr_lab.config(text = text_man)
+            fr.geometry('{}x{}+{}+{}'.format(pos[2], pos[3], e.x_root + 20, e.y_root + 20))
+        else:
+            fr.withdraw()
 
 
     ''' Show contextual menu '''
