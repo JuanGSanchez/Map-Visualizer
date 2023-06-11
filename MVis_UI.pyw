@@ -245,34 +245,38 @@ class MVis_UI(Tk):
         self.menucontext.add_command(label = "Exit", command = self.exit)
 
 # UI bindings
-        self.En_val1.bind("<Up>", lambda event: self.change_values(event, 1, [self.rootmin.get(), self.rootmax.get(), self.val_min], self.En_val1.winfo_name(), self.Lb_val1))
-        self.En_val1.bind("<Down>", lambda event: self.change_values(event, -1, [self.rootmin.get(), self.rootmax.get(), self.val_min], self.En_val1.winfo_name(), self.Lb_val1))
-        self.En_val1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.rootmin.get(), self.rootmax.get(), self.val_min], self.En_val1.winfo_name(), self.Lb_val1))
+        self.En_val1.bind("<Up>", lambda event: self.change_values(event, 1, [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.val_min], self.En_val1.winfo_name(), self.Lb_val1))
+        self.En_val1.bind("<Down>", lambda event: self.change_values(event, -1, [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.val_min], self.En_val1.winfo_name(), self.Lb_val1))
+        self.En_val1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.val_min], self.En_val1.winfo_name(), self.Lb_val1))
         self.En_val1.bind("<KeyRelease>", lambda event: self.set_values(self.En_val1.winfo_name()))
+        self.En_val1.bind("<3>", lambda event: self.reset_values(self.rootmin.get()*(10**self.ref_exp), self.val_min, self.En_val1.winfo_name()))
 
         self.Lb_val1.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_val1))
         self.Lb_val1.bind('<1>', lambda event: self.Lb_val1.config(text = '...'))
 
-        self.En_val2.bind("<Up>", lambda event: self.change_values(event, 1, [self.rootmin.get(), self.rootmax.get(), self.val_max], self.En_val2.winfo_name(), self.Lb_val2))
-        self.En_val2.bind("<Down>", lambda event: self.change_values(event, -1, [self.rootmin.get(), self.rootmax.get(), self.val_max], self.En_val2.winfo_name(), self.Lb_val2))
-        self.En_val2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.rootmin.get(), self.rootmax.get(), self.val_max], self.En_val2.winfo_name(), self.Lb_val2))
+        self.En_val2.bind("<Up>", lambda event: self.change_values(event, 1, [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.val_max], self.En_val2.winfo_name(), self.Lb_val2))
+        self.En_val2.bind("<Down>", lambda event: self.change_values(event, -1, [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.val_max], self.En_val2.winfo_name(), self.Lb_val2))
+        self.En_val2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.val_max], self.En_val2.winfo_name(), self.Lb_val2))
         self.En_val2.bind("<KeyRelease>", lambda event: self.set_values(self.En_val2.winfo_name()))
+        self.En_val2.bind("<3>", lambda event: self.reset_values(self.rootmax.get()*(10**self.ref_exp), self.val_max, self.En_val2.winfo_name()))
 
         self.Lb_val2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_val2))
         self.Lb_val2.bind('<1>', lambda event: self.Lb_val2.config(text = '...'))
 
-        self.En_col1.bind("<Up>", lambda event: self.change_values(event, 1, [self.rootmin.get(), self.rootmax.get(), self.col_min], self.En_col1.winfo_name(), self.Lb_col1))
-        self.En_col1.bind("<Down>", lambda event: self.change_values(event, -1, [self.rootmin.get(), self.rootmax.get(), self.col_min], self.En_col1.winfo_name(), self.Lb_col1))
-        self.En_col1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.rootmin.get(), self.rootmax.get(), self.col_min], self.En_col1.winfo_name(), self.Lb_col1))
+        self.En_col1.bind("<Up>", lambda event: self.change_values(event, 1, [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.col_min], self.En_col1.winfo_name(), self.Lb_col1))
+        self.En_col1.bind("<Down>", lambda event: self.change_values(event, -1, [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.col_min], self.En_col1.winfo_name(), self.Lb_col1))
+        self.En_col1.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.col_min], self.En_col1.winfo_name(), self.Lb_col1))
         self.En_col1.bind("<KeyRelease>", lambda event: self.set_values(self.En_col1.winfo_name()))
+        self.En_col1.bind("<3>", lambda event: self.reset_values(self.rootmin.get()*(10**self.ref_exp), self.col_min, self.En_col1.winfo_name()))
 
         self.Lb_col1.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col1))
         self.Lb_col1.bind('<1>', lambda event: self.Lb_col1.config(text = '...'))
 
-        self.En_col2.bind("<Up>", lambda event: self.change_values(event, 1, [self.rootmin.get(), self.rootmax.get(), self.col_max], self.En_col2.winfo_name(), self.Lb_col2))
-        self.En_col2.bind("<Down>", lambda event: self.change_values(event, -1, [self.rootmin.get(), self.rootmax.get(), self.col_max], self.En_col2.winfo_name(), self.Lb_col2))
-        self.En_col2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.rootmin.get(), self.rootmax.get(), self.col_max], self.En_col2.winfo_name(), self.Lb_col2))
+        self.En_col2.bind("<Up>", lambda event: self.change_values(event, 1, [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.col_max], self.En_col2.winfo_name(), self.Lb_col2))
+        self.En_col2.bind("<Down>", lambda event: self.change_values(event, -1, [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.col_max], self.En_col2.winfo_name(), self.Lb_col2))
+        self.En_col2.bind("<MouseWheel>", lambda event: self.change_values(event, (event.delta/120), [self.rootmin.get()*(10**self.ref_exp), self.rootmax.get()*(10**self.ref_exp), self.col_max], self.En_col2.winfo_name(), self.Lb_col2))
         self.En_col2.bind("<KeyRelease>", lambda event: self.set_values(self.En_col2.winfo_name()))
+        self.En_col2.bind("<3>", lambda event: self.reset_values(self.rootmax.get()*(10**self.ref_exp), self.col_max, self.En_col2.winfo_name()))
 
         self.Lb_col2.bind("<MouseWheel>", lambda event: self.change_sweep(event, self.Lb_col2))
         self.Lb_col2.bind('<1>', lambda event: self.Lb_col2.config(text = '...'))
@@ -306,23 +310,29 @@ class MVis_UI(Tk):
         self.rootmin.set(np.nanmin(map_values))
         self.rootmax.set(np.nanmax(map_values))
 
+        ref_val = np.max([abs(self.rootmin.get()), abs(self.rootmax.get())])
+        if not 1000 >= ref_val > 0.01:
+            self.ref_exp = -self.sci_exp(ref_val) + 2
+        else:
+            self.ref_exp = 0
+
         # Setting scale widgets to the given array
-        self.Sc_val1.config(from_ = self.rootmin.get(), to = self.rootmax.get())
-        self.Sc_val2.config(from_ = self.rootmin.get(), to = self.rootmax.get())
-        self.Sc_col1.config(from_ = self.rootmin.get(), to = self.rootmax.get())
-        self.Sc_col2.config(from_ = self.rootmin.get(), to = self.rootmax.get())
+        self.Sc_val1.config(from_ = self.rootmin.get()*(10**self.ref_exp), to = self.rootmax.get()*(10**self.ref_exp))
+        self.Sc_val2.config(from_ = self.rootmin.get()*(10**self.ref_exp), to = self.rootmax.get()*(10**self.ref_exp))
+        self.Sc_col1.config(from_ = self.rootmin.get()*(10**self.ref_exp), to = self.rootmax.get()*(10**self.ref_exp))
+        self.Sc_col2.config(from_ = self.rootmin.get()*(10**self.ref_exp), to = self.rootmax.get()*(10**self.ref_exp))
 
         # Setting variables to the given array
-        self.val_min.set(self.rootmin.get())
+        self.val_min.set(self.rootmin.get()*(10**self.ref_exp))
         self.val_min_old.set(self.val_min.get())
         self.val_sweep1.set(self.val_min.get())
-        self.val_max.set(self.rootmax.get())
+        self.val_max.set(self.rootmax.get()*(10**self.ref_exp))
         self.val_max_old.set(self.val_max.get())
         self.val_sweep2.set(self.val_max.get())
-        self.col_min.set(self.rootmin.get())
+        self.col_min.set(self.rootmin.get()*(10**self.ref_exp))
         self.col_min_old.set(self.col_min.get())
         self.col_sweep1.set(self.col_min.get())
-        self.col_max.set(self.rootmax.get())
+        self.col_max.set(self.rootmax.get()*(10**self.ref_exp))
         self.col_max_old.set(self.col_max.get())
         self.col_sweep2.set(self.col_max.get())
 
@@ -357,7 +367,10 @@ class MVis_UI(Tk):
         if None not in [event.xdata, value]:
             self.lab_xpixel.config(text = 'X = {}'.format(int(event.xdata)))
             self.lab_ypixel.config(text = 'Y = {}'.format(int(event.ydata)))
-            self.lab_value.config(text = 'val = {}'.format(value))
+            if value < 0.01 or value >= 1000:
+                self.lab_value.config(text = 'val = {:.3e}'.format(value))
+            else:
+                self.lab_value.config(text = 'val = {:.2f}'.format(value))
         else:
             self.lab_xpixel.config(text = 'X = ')
             self.lab_ypixel.config(text = 'Y = ')
@@ -367,8 +380,8 @@ class MVis_UI(Tk):
     ''' Function to change array's value range '''
     def map_range(self):
         try:
-            map_copy = np.where(self.map_array < self.val_min.get(), self.val_min.get(), self.map_array)
-            map_copy = np.where(map_copy > self.val_max.get(), self.val_max.get(), map_copy)
+            map_copy = np.where(self.map_array < self.val_min.get()/(10**self.ref_exp), self.val_min.get()/(10**self.ref_exp), self.map_array)
+            map_copy = np.where(map_copy > self.val_max.get()/(10**self.ref_exp), self.val_max.get()/(10**self.ref_exp), map_copy)
             self.MV_show.set_data(map_copy)
             self.canv.draw()
         except:
@@ -379,7 +392,7 @@ class MVis_UI(Tk):
     def map_colorange(self):
         try:
             self.MV_mp.set_clim(vmin = self.col_min.get(), vmax = self.col_max.get())
-            self.MV_show.set_clim(vmin = self.col_min.get(), vmax = self.col_max.get())
+            self.MV_show.set_clim(vmin = self.col_min.get()/(10**self.ref_exp), vmax = self.col_max.get()/(10**self.ref_exp))
             self.canv.draw()
         except:
             pass
@@ -490,6 +503,17 @@ class MVis_UI(Tk):
                     self.col_max_old.set(self.col_max.get())
                 self.col_sweep2.set(self.col_max.get())
                 self.map_colorange()
+
+
+    def reset_values(self, val_ref, val, label):
+        val.set(val_ref)
+        self.set_values(label)
+
+
+    ''' Function from Stack Overflow to get number's exponent of its scientific notation form'''
+    def sci_exp(self, number):
+        base = np.log10(number)
+        return int(np.floor(base))
 
 
     ''' Show contextual menu '''

@@ -29,7 +29,8 @@ def reader_txt(fl):
         try:
             map_result[0,0]
         except:
-            map_result= [map_result.tolist()]
+            map_result= np.array([map_result.flatten()])
+            print(map_result)
         return map_result, 0
     except:
         return [], -1
