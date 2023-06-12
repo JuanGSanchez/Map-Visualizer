@@ -113,7 +113,7 @@ class MVis_UI(Tk):
             self.fr_graph.place_configure(width = self.winfo_width() - size_width, height = self.winfo_height() - size_height)
             self.fr_selector.place_configure(y = self.winfo_height() - size_height, width = self.winfo_width() - size_width, height = size_height)
             fr_options.place_configure(x = self.winfo_width() - size_width)
-            # self.MV_fig.tight_layout(pad = 1.0, w_pad = 1.0, h_pad = 1.0)
+            self.lab_exp.place_configure(x = self.fr_selector.winfo_width() - 150)
         self.bind("<Configure>", cf_frames)
 
         # Incorporation of a scrollbar in the options frame
@@ -252,23 +252,22 @@ class MVis_UI(Tk):
         fr_man.withdraw()
         self.fr_lab = Label(fr_man, justify = LEFT, bd = 2, **font_man)
         self.fr_lab.grid(padx = 1, pady = 1, sticky = W)
-        self.update()
-        self.Sc_val1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_val1.winfo_width() - 2, self.Sc_val1.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man1))
-        self.Sc_val2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_val2.winfo_width() - 2, self.Sc_val2.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man1))
-        self.Sc_col1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_col1.winfo_width() - 2, self.Sc_col1.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man1))
-        self.Sc_col2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_col2.winfo_width() - 2, self.Sc_col2.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man1))
-        self.En_val1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.En_val1.winfo_width() - 2, self.En_val1.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man2))
-        self.En_val2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.En_val2.winfo_width() - 2, self.En_val2.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man2))
-        self.En_col1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.En_col1.winfo_width() - 2, self.En_col1.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man2))
-        self.En_col2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.En_col2.winfo_width() - 2, self.En_col2.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man2))
-        self.Lb_val1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Lb_val1.winfo_width() - 2, self.Lb_val1.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man3))
-        self.Lb_val2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Lb_val2.winfo_width() - 2, self.Lb_val2.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man3))
-        self.Lb_col1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Lb_col1.winfo_width() - 2, self.Lb_col1.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man3))
-        self.Lb_col2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Lb_col2.winfo_width() - 2, self.Lb_col2.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man3))
-        self.lab_xpixel.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.lab_xpixel.winfo_width() - 2, self.lab_xpixel.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man4))
-        self.lab_ypixel.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.lab_xpixel.winfo_width() - 2, self.lab_xpixel.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man5))
-        self.lab_value.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.lab_xpixel.winfo_width() - 2, self.lab_xpixel.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man6))
-        self.lab_exp.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.lab_xpixel.winfo_width() - 2, self.lab_xpixel.winfo_height() - 2, self.fr_lab.winfo_width() + 5, self.fr_lab.winfo_height() + 5], text_man7))
+        self.Sc_val1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_val1, self.fr_lab], text_man1))
+        self.Sc_val2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_val2, self.fr_lab], text_man1))
+        self.Sc_col1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_col1, self.fr_lab], text_man1))
+        self.Sc_col2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Sc_col2, self.fr_lab], text_man1))
+        self.En_val1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.En_val1, self.fr_lab], text_man2))
+        self.En_val2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.En_val2, self.fr_lab], text_man2))
+        self.En_col1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.En_col1, self.fr_lab], text_man2))
+        self.En_col2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.En_col2, self.fr_lab], text_man2))
+        self.Lb_val1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Lb_val1, self.fr_lab], text_man3))
+        self.Lb_val2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Lb_val2, self.fr_lab], text_man3))
+        self.Lb_col1.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Lb_col1, self.fr_lab], text_man3))
+        self.Lb_col2.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.Lb_col2, self.fr_lab], text_man3))
+        self.lab_xpixel.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.lab_xpixel, self.fr_lab], text_man4))
+        self.lab_ypixel.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.lab_ypixel, self.fr_lab], text_man5))
+        self.lab_value.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.lab_value, self.fr_lab], text_man6))
+        self.lab_exp.bind("<Motion>", lambda event : self.show_manual(event, fr_man, [self.lab_exp, self.fr_lab], text_man7))
 
 # UI contextual menu
         self.menucontext = Menu(self, tearoff = 0)
@@ -538,10 +537,11 @@ class MVis_UI(Tk):
 
     ''' Show manual widget '''
     def show_manual(self, e, fr, pos, text_man):
-        if 0 < e.x < pos[0] and 0 < e.y < pos[1]:
+        if 0 < e.x < pos[0].winfo_width() - 5 and 0 < e.y < pos[0].winfo_height() - 5:
             fr.deiconify()
             self.fr_lab.config(text = text_man)
-            fr.geometry('{}x{}+{}+{}'.format(pos[2], pos[3], e.x_root + 20, e.y_root + 20))
+            self.update()
+            fr.geometry('{}x{}+{}+{}'.format(pos[1].winfo_width() + 5, pos[1].winfo_height() + 5, e.x_root + 20, e.y_root + 20))
         else:
             fr.withdraw()
 
