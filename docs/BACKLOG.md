@@ -182,19 +182,11 @@ core invariant holds per review §B). The two routing regressions (B1/B2) and th
 
 ---
 
-### MV-B09 — Stale legacy Tkinter files remain at repo root
-- Severity: **LOW** (confusion risk about the real entry point; dead code).
-- File:line: repo root `MVis_UI.pyw`, `MVis_utils.py` (original Tkinter app, superseded by
-  `map_visualizer/` package).
-- Root cause: the original flat-layout Tkinter app was left in place after the package refactor; both
-  the new `map_visualizer/` package and the dead originals coexist.
-- Fix approach: remove `MVis_UI.pyw` and `MVis_utils.py` (and the stray `__pycache__/
-  MVis_utils.cpython-311.pyc`) from the branch, OR move them under a clearly marked `legacy/` dir with a
-  README note. Confirm nothing in the package, tests, packaging spec, or docs imports them first.
-- Acceptance criterion: no module under `map_visualizer/`, `tests/`, `api/`, or `packaging/` references
-  `MVis_UI`/`MVis_utils`; the originals are removed or relocated under `legacy/` with a note; README
-  names `map_visualizer.gui.app` (Qt) as the sole desktop entry point.
-- Asset capability needed: **gitignore + repo hygiene** + **edit docs / README**.
+### MV-B09 — ~~Stale legacy Tkinter files remain at repo root~~ RESOLVED
+- **Status: RESOLVED** — `MVis_UI.pyw` and `MVis_utils.py` removed via `git rm`.
+- Acceptance criterion met: no module under `map_visualizer/`, `tests/`, `api/`, or `packaging/`
+  references `MVis_UI`/`MVis_utils`; originals removed; README names `map-visualizer-gui`
+  (`map_visualizer.gui.app`) as the sole desktop entry point.
 
 ---
 
