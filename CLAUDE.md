@@ -6,13 +6,36 @@ packaging, and a pytest + coverage gate. This file is the always-loaded operatin
 Claude session working in this repo. Keep it lean; it states the invariants and the commands, and
 points to the detailed assets rather than restating them.
 
-## Agents in this repo
-- `.claude/agents/map-visualizer-operator.md` — **drives the running service** (MCP/REST) headlessly:
-  render/stats/discovery. Does not edit code.
-- `.claude/agents/map-visualizer-maintainer.md` — **edits/evolves the repo**: implements one
-  `docs/BACKLOG.md` item by ID end-to-end (code + tests + docs), holding the invariants below.
-- Backlog of work: `docs/BACKLOG.md` (item IDs `MV-B*` bugs, `MV-I*` features, with acceptance
-  criteria). Operating guide for the access layer: `docs/agent-operating-doc.md`.
+## AI asset suite (`.claude/`)
+**Agents** (`.claude/agents/`) — operator drives the live service; the role agents evolve the repo
+(one `docs/BACKLOG.md` item by ID, split by capability), with a read-only reviewer as the final gate:
+| Agent | Role |
+|---|---|
+| `map-visualizer-operator` | drives the running MCP/REST service (render/stats/discovery); no code edits |
+| `map-visualizer-core-dev` | headless Agg render core + render modes/params + loader hardening (`core.py`/`enums.py`) |
+| `map-visualizer-gui-dev` | PySide6 GUI + QtAgg canvas; calls the shared core helpers (`gui/`) |
+| `map-visualizer-access-dev` | MCP+REST returning PNG + Pydantic boundary validators → 422 (`api/`) |
+| `map-visualizer-test-author` | pytest cases + custody of the >=90% core coverage gate |
+| `map-visualizer-packaging-builder` | PyInstaller spec/excludes + no-bundle-in-VCS hygiene (`packaging/`) |
+| `map-visualizer-docs-writer` | README / operating doc / access notes, matched to shipped code |
+| `map-visualizer-reviewer` | read-only PASS/FAIL on correctness + headless-purity + every invariant |
+| `map-visualizer-maintainer` | RETIRED redirect stub → the role agents above (do not dispatch) |
+
+**Instructions** (`.claude/instructions/`, auto-applied; agents cite, never restate):
+`ai-execution-discipline` (verify-before-edit · assumption checks · stop-and-confirm · acceptance-driven done · context budget); `python-repo-conventions` (Agg purity · typed→422 · deterministic offline tests · gate is the contract · no secrets/bundles).
+
+**Skills** (`.claude/skills/<name>/`): `add-render-mode` (new mode/param across core→access→GUI→tests→docs);
+`expose-op` (core fn → MCP tool + REST route returning PNG + 422 boundary + tests); `run-quality-gate`
+(pytest+coverage + core-import + pyplot/Qt purity grep); `build-release` (PyInstaller build + verify excludes in the frozen bundle).
+
+**Hooks** (`.claude/settings.json` + `.claude/hooks/`, native PreToolUse/PostToolUse on `Edit|Write`):
+`block_pyplot_qt_in_core` (BLOCK pyplot/Qt/Tk import into core/enums → invariant 1); `block_secrets_and_bundles`
+(BLOCK `.env`/keys + `packaging/bin|work` writes → invariant 8); `guard_tkinter_regression` (BLOCK legacy
+`MVis_UI`/`MVis_utils`/tkinter re-introduction + Tk-exclude removal → invariant 7); `coverage_gate_reminder`
+(advisory: run the gate after core/test edits; flag gate-weakening in `pyproject.toml`).
+
+Backlog of work: `docs/BACKLOG.md` (`MV-B*` bugs, `MV-I*` features, acceptance criteria). Access-layer
+operating guide: `docs/agent-operating-doc.md`.
 
 ## CRITICAL invariants — never violate
 1. **AGG-ONLY HEADLESS CORE.** `map_visualizer/core.py` may import only

@@ -59,6 +59,10 @@ Your primary task is to translate a natural-language render, statistics, or disc
 ## Audience
 External Claude operators (and automated clients) that need to drive this repo's visualization capability headlessly, without the PySide6 GUI.
 
+## Operating contract (cited, not restated)
+- `.claude/instructions/ai-execution-discipline.md` — verify-before-act, stop-and-confirm on ambiguity, acceptance-driven done (the requested visualization with the requested parameters), context budget (keep image bytes out of context — write the PNG to a file, reference the path).
+- This agent OPERATES the running service; it does not edit the repo. Code/evolution is the role agents' job: `map-visualizer-core-dev` (headless core), `map-visualizer-gui-dev` (PySide6), `map-visualizer-access-dev` (MCP+REST/422), `map-visualizer-test-author` (coverage gate), `map-visualizer-packaging-builder` (PyInstaller), `map-visualizer-docs-writer` (docs), `map-visualizer-reviewer` (PASS/FAIL).
+
 ## The capability you drive
 The repo exposes one shared service two ways — MCP and REST — both delegating to `map_visualizer.api.service` over the headless render core. All computation is deterministic and stateless: identical inputs always produce identical output. There are no write or stateful operations.
 
