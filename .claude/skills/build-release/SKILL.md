@@ -49,8 +49,18 @@ restores bundle hygiene (MV-B07); or a release verification.
 ## Done = build produced, excludes PASS in the frozen bundle, and `git ls-files packaging/` shows no bundle binaries.
 
 ## Principles Applied
-- P2 determinism (fixed build + verification commands), P3 systematicity,
-  P5 context budget (report exe/size + PASS/FAIL, not full build log), P7 reference hygiene.
+P1 Source-of-Truth Grounding | P2 Full Determinism | P3 Systematicity | P4 Consistency |
+P5 Context Budget Discipline | P6 Self-Containment | P7 Reference Hygiene |
+P8 Principles Inheritance | P9 Role Separation | P10 Exit-Status Determinism |
+P11 Programmatic Determinism | P12 Maximal-Effort Completeness | P13 Token Economy.
+- P2 determinism (fixed build + verification commands; identical inputs → identical PASS/FAIL),
+  P3 systematicity (fixed pre-check → build → verify → VCS-hygiene order), P4 consistency
+  (same excludes list the spec and gitignore both reference), P5 context budget (report exe/size
+  + PASS/FAIL, not full build log), P7 reference hygiene, P11 programmatic determinism
+  (bundle-verify grep is a deterministic script step, not LLM inference), P12 maximal completeness
+  (excludes verified in the frozen bundle, not just the spec).
+- R17 Engineering Disciplines — prompt/context/harness layers; canonical reference:
+  `repo-enhancer/orchestrator.md` CONVENTIONS.
 
 ## Sources
 - `packaging/MapVisualizer.spec` (excludes), `packaging/build.py`, `packaging/README-packaging.md`,

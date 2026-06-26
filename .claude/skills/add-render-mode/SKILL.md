@@ -35,8 +35,18 @@ contour labels, MV-I06 bins, MV-I07 downsample, MV-I08 overlay, MV-I11 annotatio
 Stop and confirm before changing a public render signature other layers depend on (Grep importers first).
 
 ## Principles Applied
-- P1 grounding (every step targets a real symbol), P3 systematicity (fixed core-first order),
-  P4 consistency (reuses the typed→422 + shared-helper pattern), P6 self-containment, P7 reference hygiene.
+P1 Source-of-Truth Grounding | P2 Full Determinism | P3 Systematicity | P4 Consistency |
+P5 Context Budget Discipline | P6 Self-Containment | P7 Reference Hygiene |
+P8 Principles Inheritance | P9 Role Separation | P10 Exit-Status Determinism |
+P11 Programmatic Determinism | P12 Maximal-Effort Completeness | P13 Token Economy.
+- P1 grounding (every step targets a real symbol), P2 determinism (fixed commands for gate/import check),
+  P3 systematicity (fixed core-first order), P4 consistency (reuses the typed→422 + shared-helper pattern),
+  P5 context budget (Grep before Read; report summary, not full output), P6 self-containment,
+  P7 reference hygiene, P8 inherited by all agents invoking this skill, P9 role separation
+  (core-dev → gui-dev → access-dev → test-author → docs-writer order), P12 maximal completeness
+  (all four layers + gate before done), P13 token economy (summary lines only).
+- R17 Engineering Disciplines — prompt/context/harness layers; canonical reference:
+  `repo-enhancer/orchestrator.md` CONVENTIONS.
 
 ## Sources
 - `docs/BACKLOG.md` (mode/param items), `map_visualizer/{core,enums}.py`, `map_visualizer/api/{service,rest,mcp_server}.py`,

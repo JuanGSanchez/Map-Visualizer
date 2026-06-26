@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse hook — block writing secrets or frozen build bundles into the repo.
+"""PreToolUse hook -- block writing secrets or frozen build bundles into the repo.
 
 Enforces CLAUDE.md invariant 8: never commit secrets (.env / keys / tokens) or built
 PyInstaller bundles (packaging/bin/, packaging/work/). Blocks at the Write/Edit step so
@@ -8,6 +8,15 @@ such files never enter the working tree to be committed.
 Fires on Edit|Write. Reads the PreToolUse JSON on stdin; blocks (exit 2) when the target
 path is under a bundle dir or looks like a secret file, or when obvious secret material
 would be written. Fast: pure-stdlib, path + light content checks only.
+
+## Principles Applied
+P1 Source-of-Truth Grounding -- the no-secrets/no-artifacts rule traces to CLAUDE.md
+  invariant 8 and python-repo-conventions.md D8; no invented rule.
+P2 Full Determinism -- path/content checks are deterministic; identical input -> identical exit.
+P8 Principles Inheritance -- harness-level enforcement of the canonical no-secrets/no-bundles
+  custom repo rule (C1 in packaging-builder; invariant 8 in CLAUDE.md).
+P11 Programmatic Determinism -- this hook IS the deterministic harness; the no-secrets/no-bundles
+  contract is enforced by PreToolUse before any write reaches the working tree.
 """
 import json
 import re

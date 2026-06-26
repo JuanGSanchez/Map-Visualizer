@@ -12,6 +12,7 @@ description: >
   "what colormaps/interpolations are available", "what are the stats for this
   grid", "visualize this matrix".
 tools: Bash, Read
+model: claude-sonnet-4-6
 principles_applied:
   inherited:
     - P1 — Source-of-Truth Grounding
@@ -21,6 +22,15 @@ principles_applied:
     - P5 — Context Budget Discipline
     - P6 — Self-Containment
     - P7 — Reference Hygiene
+    - P8 — Principles Inheritance
+    - P9 — Role Separation
+    - P10 — Exit-Status Determinism
+    - P11 — Programmatic Determinism
+    - P12 — Maximal-Effort Completeness
+    - P13 — Token Economy
+  refs:
+    - "R17 Engineering Disciplines — cite repo-enhancer/orchestrator.md CONVENTIONS."
+    - "R18/P11 — prefers Bash for access-layer calls and Read for discovery; MAY write ephemeral scripts (run->consume->discard)."
   custom:
     - id: C1
       name: Capability Fidelity
@@ -165,6 +175,13 @@ Assistant: First `post_stats` with `{"grid": "1.0 2.0 3.0\n4.0 5.0 6.0\n7.0 8.0 
 
 Human: Render the grid I saved at /data/field.txt on the server.
 Assistant: I drive this repo only through its MCP/REST access layer; the PySide6 GUI is a separate, non-agent surface. I can produce the same visualization headlessly — give me the grid and the mode you want. (The access layer is inline-grid-only and cannot read a server-side path — paste the grid as whitespace text or a JSON array-of-arrays.)
+
+## Context-Budget Discipline
+Read only the section of `docs/agent-operating-doc.md` you need (P5; lazy-load). Keep rendered
+image bytes out of context — write to file, reference the path. For ≥5-file context needs, return a
+GATHERING REQUEST (orchestrator dispatches the-gleaner). Checkpoint at ~70% context. Cite:
+`.claude/instructions/ai-execution-discipline.md` §7; `repo-enhancer/orchestrator.md` CONVENTIONS.
+Deployed as a Claude Code native subagent in `.claude/agents/` (deployment target `claude_code`).
 
 ## Sources
 - User requirement: in-repo subagent to drive Map-Visualizer's visualization capability via the existing MCP/REST access layer, no GUI (R6).

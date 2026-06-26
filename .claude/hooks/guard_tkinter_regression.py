@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse hook — guard against a Tkinter / legacy-UI regression.
+"""PreToolUse hook -- guard against a Tkinter / legacy-UI regression.
 
 Enforces the no-Tkinter-regression invariant (CLAUDE.md / MV-B09): the legacy flat
 Tkinter app (MVis_UI.pyw, MVis_utils.py) is dead and superseded by the PySide6 package;
@@ -8,6 +8,15 @@ it must not be re-created or re-imported, and the PyInstaller excludes for Tk st
 Fires on Edit|Write. Reads the PreToolUse JSON on stdin; blocks (exit 2) when a write
 would (re)create a legacy file, import the legacy modules, import tkinter into the
 package, or remove a Tk exclude line from the PyInstaller spec. Fast: pure-stdlib.
+
+## Principles Applied
+P2 Full Determinism -- regex/path checks are deterministic; identical input -> identical exit.
+P4 Consistency -- ensures the no-Tkinter/legacy-UI rule is consistently enforced across all
+  edits; the PyInstaller excludes list stays intact and the UI is always the PySide6 package.
+P8 Principles Inheritance -- harness-level enforcement of the repo's no-Tkinter-regression
+  canonical rule (CLAUDE.md invariant 7 / python-repo-conventions.md D8).
+P11 Programmatic Determinism -- this hook IS the deterministic harness; Tkinter regression
+  is blocked by PreToolUse before any write, not left to LLM judgement.
 """
 import json
 import re

@@ -31,10 +31,21 @@ ambiguous actions. Agents reference this file by name; they do not restate it.
    line. One unit of work per session; checkpoint before stopping if near the limit.
 
 ## Principles Applied
+P1 Source-of-Truth Grounding | P2 Full Determinism | P3 Systematicity | P4 Consistency |
+P5 Context Budget Discipline | P6 Self-Containment | P7 Reference Hygiene |
+P8 Principles Inheritance | P9 Role Separation | P10 Exit-Status Determinism |
+P11 Programmatic Determinism | P12 Maximal-Effort Completeness | P13 Token Economy.
 - P3 Systematicity — a fixed verify → assume → confirm → prove sequence every agent follows.
 - P4 Consistency — the single anti-literal-execution contract the whole roster cites once here.
+- P5 Context Budget Discipline — directive §7 specifies Grep-before-Read, the Gleaner threshold
+  (≥5 files → GATHERING REQUEST), and the ~70% checkpoint trigger.
 - P6 Self-Containment — directives are complete; no external state assumed.
 - P7 Reference Hygiene — agents cite this file by name; rules are not restated downstream.
+- P8 Principles Inheritance — this instruction is inherited by all agents in the roster.
+- R17 Engineering Disciplines — prompt/context/harness layers; canonical reference:
+  `repo-enhancer/orchestrator.md` CONVENTIONS.
+- R18/P11 Programmatic Determinism — deterministic steps (gate runs, import checks) done by
+  scripts/hooks, not LLM prose; see `repo-enhancer/orchestrator.md` CONVENTIONS.
 
 ## Sources
 - User requirement: every agent bakes in context-budget discipline + anti-programmatic-

@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
-"""PostToolUse hook — remind to run the coverage gate after a core/test edit.
+"""PostToolUse hook -- remind to run the coverage gate after a core/test edit.
 
 Surfaces CLAUDE.md invariant: >=90% core coverage gate must be green before a change
 is done, and it must NEVER be weakened. Non-blocking: this is a reminder, not an
-enforcement — test-author runs and owns the gate. It also flags an attempt to weaken
+enforcement -- test-author runs and owns the gate. It also flags an attempt to weaken
 the gate config in pyproject.toml.
 
 Fires (PostToolUse) after Edit|Write. Reads the JSON on stdin; prints a reminder to
-stderr (exit 0 — advisory) when a core/test file changed; escalates the message when
+stderr (exit 0 -- advisory) when a core/test file changed; escalates the message when
 the pyproject gate/omit was touched. Fast: pure-stdlib, path checks only.
+
+## Principles Applied
+P2 Full Determinism -- path-based check; identical input -> identical advisory output.
+P8 Principles Inheritance -- harness-level reminder of the repo's coverage contract
+  (CLAUDE.md / python-repo-conventions.md D7 / test-author C1).
+P11 Programmatic Determinism -- this hook IS part of the deterministic harness; the
+  PostToolUse event fires automatically so the reminder is never missed.
+P12 Maximal-Effort Completeness -- surfaces the coverage gate requirement after every
+  core/test edit, ensuring the >=90% threshold is not forgotten before "done" is declared.
 """
 import json
 import sys

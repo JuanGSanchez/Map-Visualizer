@@ -34,8 +34,18 @@ MV-I10 ROI, the MV-B04 422 fix).
 ## Done = all of: happy-path + every-malformed-shape→422 proven in-process, gate green, no 500 escape, docs in sync.
 
 ## Principles Applied
-- P1 grounding (real model/route symbols), P2 determinism (in-process offline tests),
-  P3 systematicity (fixed boundary-first order), P6 self-containment, P7 reference hygiene.
+P1 Source-of-Truth Grounding | P2 Full Determinism | P3 Systematicity | P4 Consistency |
+P5 Context Budget Discipline | P6 Self-Containment | P7 Reference Hygiene |
+P8 Principles Inheritance | P9 Role Separation | P10 Exit-Status Determinism |
+P11 Programmatic Determinism | P12 Maximal-Effort Completeness | P13 Token Economy.
+- P1 grounding (real model/route symbols; Grep before writing), P2 determinism (in-process
+  offline ASGI tests; fixed commands), P3 systematicity (fixed boundary-first order: service →
+  REST model+validator → MCP tool → tests → gate → docs), P4 consistency (one shared service
+  for both transports; reuses the typed→422 pattern), P5 context budget (Grep to locate then
+  Read only the deref + catch-set region), P6 self-containment, P7 reference hygiene,
+  P12 maximal completeness (every malformed-shape case proven in-process before done).
+- R17 Engineering Disciplines — prompt/context/harness layers; canonical reference:
+  `repo-enhancer/orchestrator.md` CONVENTIONS.
 
 ## Sources
 - `docs/BACKLOG.md` (access items), `map_visualizer/api/{service,rest,mcp_server,main}.py`,

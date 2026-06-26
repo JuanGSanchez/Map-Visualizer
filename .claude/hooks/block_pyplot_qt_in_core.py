@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse hook — block a pyplot/Qt/Tk import landing in the HEADLESS render core.
+"""PreToolUse hook -- block a pyplot/Qt/Tk import landing in the HEADLESS render core.
 
 Enforces CLAUDE.md invariant 1: map_visualizer/core.py and enums.py import ONLY the
 Agg matplotlib set; never matplotlib.pyplot, never Qt/Tk/any interactive backend. A
@@ -8,6 +8,14 @@ single such import silently breaks the PyInstaller bundle and the headless serve
 Fires on Edit|Write. Reads the harness PreToolUse JSON on stdin; inspects the new
 content destined for a core file; exits 2 (blocking, message on stderr) if a forbidden
 import would be written. Fast: pure-stdlib regex, no imports of the repo.
+
+## Principles Applied
+P2 Full Determinism -- regex match on fixed forbidden-import patterns; deterministic exit code.
+P8 Principles Inheritance -- enforces the canonical P1-P13 contract for every edit to core files.
+P9 Role Separation -- enforces the headless Agg core boundary; the central Map-Visualizer
+  invariant: pyplot/Qt/Tk must never enter core.py or enums.py regardless of edit context.
+P11 Programmatic Determinism -- this hook IS the deterministic harness; the invariant is
+  enforced by the harness (PreToolUse), not by LLM reasoning alone.
 """
 import json
 import re

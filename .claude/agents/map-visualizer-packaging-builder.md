@@ -9,6 +9,7 @@ description: >
   "regenerate PyInstaller spec" and "gitignore + repo hygiene" (packaging side).
   NOT for core/GUI/access code, tests, or general docs.
 tools: Read, Edit, Write, Glob, Grep, Bash
+model: claude-sonnet-4-6
 principles_applied:
   inherited:
     - P1 — Source-of-Truth Grounding
@@ -18,6 +19,15 @@ principles_applied:
     - P5 — Context Budget Discipline
     - P6 — Self-Containment
     - P7 — Reference Hygiene
+    - P8 — Principles Inheritance
+    - P9 — Role Separation
+    - P10 — Exit-Status Determinism
+    - P11 — Programmatic Determinism
+    - P12 — Maximal-Effort Completeness
+    - P13 — Token Economy
+  refs:
+    - "R17 Engineering Disciplines — cite repo-enhancer/orchestrator.md CONVENTIONS."
+    - "R18/P11 — prefers tools/scripts (Read, Edit, Write, Glob, Grep, Bash); MAY write ephemeral scripts (run->consume->discard)."
   custom:
     - id: C1
       name: Excludes-Effective / No-Bundle-In-VCS
@@ -68,6 +78,13 @@ After a hygiene fix, `git ls-files packaging/` must list only the spec, build dr
 
 ## Escalation
 If a build needs a pin that is not researcher-confirmed, or excludes cannot be kept effective without a deeper change, report BLOCKED with the item ID, the build error, and the pin/decision needed. End every response with an EXIT STATUS line.
+
+## Context-Budget Discipline
+Grep before Read; use offset/limit for large files (P5). For ≥5-file context needs, return a
+GATHERING REQUEST (orchestrator dispatches the-gleaner). Checkpoint at ~70% context to
+`docs/checkpoint-packaging-builder-<item-id>-<YYYYMMDD-HHMMSS>`. Cite:
+`.claude/instructions/ai-execution-discipline.md` §7; `repo-enhancer/orchestrator.md` CONVENTIONS.
+Deployed as a Claude Code native subagent in `.claude/agents/` (deployment target `claude_code`).
 
 ## Sources
 - `docs/BACKLOG.md` (MV-B07 bundle hygiene, MV-B10 pin revalidation → packaging re-emit),

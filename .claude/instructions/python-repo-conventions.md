@@ -40,10 +40,21 @@ in `CLAUDE.md` § CRITICAL invariants — this file adds the conventions, not a 
    The `block-secrets-and-bundles` and `guard-tkinter-regression` hooks enforce these.
 
 ## Principles Applied
-- P1 Source-of-Truth Grounding — every rule traces to `CLAUDE.md`, `pyproject.toml`, the core, or the backlog.
-- P4 Consistency — one convention set the whole roster shares.
-- P6 Self-Containment — complete as stated; defers the invariant *list* to `CLAUDE.md` by reference.
+Python best-practices instruction for Map-Visualizer (PEP 8 + pytest; MV tailoring: Agg purity,
+render-math sharing, typed→422 boundary, loader hardening). Canonical principle set P1–P13:
+P1 Source-of-Truth Grounding | P2 Full Determinism | P3 Systematicity | P4 Consistency |
+P5 Context Budget Discipline | P6 Self-Containment | P7 Reference Hygiene |
+P8 Principles Inheritance | P9 Role Separation | P10 Exit-Status Determinism |
+P11 Programmatic Determinism | P12 Maximal-Effort Completeness | P13 Token Economy.
+- P1 Source-of-Truth Grounding — every rule traces to `CLAUDE.md`, `pyproject.toml`, the core,
+  or the backlog; no invented conventions.
+- P4 Consistency — one convention set the whole roster shares; D1–D8 state it once here.
+- P6 Self-Containment — complete as stated; defers the invariant list to `CLAUDE.md` by reference.
 - P7 Reference Hygiene — cited by agents, never restated; every named path/hook exists.
+- P8 Principles Inheritance — all code/test/docs agents inherit these conventions; custom C1
+  entries in agent frontmatter extend, never contradict.
+- R17 Engineering Disciplines — prompt/context/harness layers on every LLM-facing asset; canonical
+  reference: `repo-enhancer/orchestrator.md` CONVENTIONS.
 
 ## Sources
 - `CLAUDE.md` (invariant list + gate commands), `pyproject.toml` (gate config, omit list, deps),

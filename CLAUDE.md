@@ -22,7 +22,9 @@ points to the detailed assets rather than restating them.
 | `map-visualizer-maintainer` | RETIRED redirect stub → the role agents above (do not dispatch) |
 
 **Instructions** (`.claude/instructions/`, auto-applied; agents cite, never restate):
-`ai-execution-discipline` (verify-before-edit · assumption checks · stop-and-confirm · acceptance-driven done · context budget); `python-repo-conventions` (Agg purity · typed→422 · deterministic offline tests · gate is the contract · no secrets/bundles).
+`ai-execution-discipline` (verify-before-edit · assumption checks · stop-and-confirm · acceptance-driven done · context budget); `python-repo-conventions` (Agg purity · typed→422 · deterministic offline tests · gate is the contract · no secrets/bundles); `sdd-constitution` (SDD gate rules, quality criteria, pipeline templates); `matplotlib-best-practices` (headless-Agg patterns, figure lifecycle, colormap/norm/export).
+
+**SDD pipeline — CLAUDE.md is the coordination point** (no orchestrator agent in this repo; this is the role sibling repos give their orchestrator agent): sequence `/specify → /clarify → /plan → /tasks → /analyze → implement → /checklist`; role agents consume the produced spec/plan/tasks artifacts and honor `.claude/instructions/sdd-constitution.md`. Conventions: `.claude/instructions/python-repo-conventions.md` · `.claude/instructions/matplotlib-best-practices.md`.
 
 **Skills** (`.claude/skills/<name>/`): `add-render-mode` (new mode/param across core→access→GUI→tests→docs);
 `expose-op` (core fn → MCP tool + REST route returning PNG + 422 boundary + tests); `run-quality-gate`
@@ -91,14 +93,32 @@ regression contract.
 - Python: `>=3.11,<3.14`.
 
 ## Principles Applied
+P1 Source-of-Truth Grounding | P2 Full Determinism | P3 Systematicity | P4 Consistency |
+P5 Context Budget Discipline | P6 Self-Containment | P7 Reference Hygiene |
+P8 Principles Inheritance | P9 Role Separation | P10 Exit-Status Determinism |
+P11 Programmatic Determinism | P12 Maximal-Effort Completeness | P13 Token Economy.
 - P1 Source-of-Truth Grounding — every invariant and command traces to `pyproject.toml`,
   `map_visualizer/core.py`, the access layer, and the review/backlog; no invented conventions.
-- P4 Consistency — the same invariant list and gate the operator/maintainer assets enforce, stated
-  once here as the shared contract.
+- P4 Consistency — the same invariant list and gate the role agents enforce, stated once here
+  as the shared contract.
 - P6 Self-Containment — the file is self-contained; detailed procedures are referenced (not
-  restated) to their owning assets (`docs/BACKLOG.md`, the two agents, `docs/agent-operating-doc.md`).
+  restated) to their owning assets (`docs/BACKLOG.md`, the role agents, `docs/agent-operating-doc.md`).
 - P7 Reference Hygiene — every referenced path exists in the repo; no restatement of the agents' own
   rules, only the shared invariants and commands.
+- P8 Principles Inheritance — every `.claude/` asset inherits this canonical P1–P13 set; custom
+  rules extend, never contradict.
+- P9 Role Separation — one agent per capability slice; CLAUDE.md is the operating-contract
+  coordination point (no orchestrator agent exists in this repo).
+- R17 Engineering Disciplines — prompt/context/harness layers applied to every LLM-facing asset;
+  canonical reference: `repo-enhancer/orchestrator.md` CONVENTIONS.
+- R18/P11 Programmatic Determinism — gates and checks are hooks/scripts, not LLM prose; agents
+  prefer existing tools/scripts; MAY write an ephemeral script (run→consume→discard); see
+  `repo-enhancer/orchestrator.md` CONVENTIONS.
+- Deployment target: `claude_code` — this file governs a real deployed `.claude/` tree (agents,
+  skills, hooks, settings.json); it is not a design-only specification.
+- External SessionStart dependency: the user-level global hook
+  `$HOME\.claude\hooks\claude-orchestration-contract.py` is a required external dependency; no
+  per-project copy is created or required.
 
 ## Sources
 - `pyproject.toml` (coverage gate, deps, entry points, Python band).
