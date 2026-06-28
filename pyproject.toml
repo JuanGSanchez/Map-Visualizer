@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "map-visualizer"
+version = "2.0.0"
+description = "2D numeric-array heatmap viewer with headless render core and PySide6 UI"
+authors = [{ name = "Juan García Sánchez" }]
+license = { text = "GPL-3.0-or-later" }
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+
+# ---------------------------------------------------------------------------
+# Core runtime dependencies (needed by the GUI app and the headless core)
+# ---------------------------------------------------------------------------
+dependencies = [
+    "numpy~=2.4.6",
+    "matplotlib~=3.11.0",
+    # PySide6 is the primary GUI toolkit (replaces Tkinter).
+    # Declared here so the GUI entry-point works out-of-the-box.
+    "PySide6~=6.11.1",
+]
+
+[project.optional-dependencies]
+# Access layer — REST + MCP server (workstream c, owned by access-layer-builder).
+# Uncomment / install with:  pip install map-visualizer[api]
+api = [
+    "fastmcp>=3.4,<4",
+    "fastapi>=0.136,<1",
+    "uvicorn>=0.49,<1",
+]
+
+# Development and build tools
+dev = [
+    "pytest~=9.0.3",
+    "pytest-cov~=7.1.0",
+    "pyinstaller~=6.20.0",
+]
+
+# ---------------------------------------------------------------------------
+# Entry-point declarations
+# NOTE: the targets listed below will be wired by the owning agent when the
+# corresponding module exists.  They are declared here as placeholders so
+# packaging metadata is complete from the start.
+# ---------------------------------------------------------------------------
+[project.scripts]
+# MCP stdio server entry — access-layer-builder (workstream c).
+map-visualizer-mcp = "map_visualizer.api.mcp_server:run_stdio"
+
+# REST / HTTP server entry — access-layer-builder (workstream c).
+map-visualizer-api = "map_visualizer.api.main:run_server"
+
+[project.gui-scripts]
+# PySide6 GUI entry — owned by the feature-enhancer workstream (b).
+# Target module: map_visualizer.gui.app  function: main
+map-visualizer-gui = "map_visualizer.gui.app:main"
+
+# ---------------------------------------------------------------------------
+# Test configuration
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+# Run with coverage by default.  The --cov-fail-under gate enforces the
+# ≥90% line-coverage requirement defined in strategy workstream (e).
+addopts = "--cov=map_visualizer --cov-report=term-missing --cov-fail-under=90"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["map_visualizer"]
+# Exclude the GUI and server boot layers from the coverage gate — those
+# are IO/display boundaries and are tested separately by the testing agent.
+omit = [
+    "map_visualizer/gui/*",
+    "map_visualizer/api/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
