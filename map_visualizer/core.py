@@ -132,25 +132,54 @@ def list_interpolations() -> list[str]:
 SourceType = Union[str, "os.PathLike[str]", IO[str], IO[bytes]]
 
 
+#: File extensions accepted by :func:`load_array`.
+_SUPPORTED_EXTENSIONS = (".txt", ".dat", ".csv")
+
+
+def _sniff_delimiter(sample: str) -> str | None:
+    """Auto-detect the column delimiter from a text *sample* (SPEC-15).
+
+    Returns the delimiter string for :func:`numpy.loadtxt`, or ``None`` for the
+    native any-whitespace behaviour.  Comma and semicolon are detected from the
+    first non-empty, non-comment data line; tabs and spaces fall back to the
+    whitespace default (``None``).
+    """
+    for line in sample.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if "," in stripped:
+            return ","
+        if ";" in stripped:
+            return ";"
+        return None  # whitespace-delimited (spaces / tabs)
+    return None
+
+
 def load_array(
     source: SourceType,
     *,
     max_cells: int = DEFAULT_MAX_CELLS,
+    delimiter: str | None = None,
 ) -> np.ndarray:
-    """Load a whitespace-delimited 2-D numeric grid.
+    """Load a 2-D numeric grid from text (whitespace, CSV, or ``;``-delimited).
 
     Accepts a file path (``str`` / ``os.PathLike``), an open text/binary
-    file-like object, or a raw multi-line string (passed through a
-    ``io.StringIO`` wrapper internally).
+    file-like object, or a raw multi-line string.  The column delimiter is
+    auto-detected (comma / semicolon / whitespace) unless *delimiter* is given
+    explicitly (SPEC-15).
 
     Parameters
     ----------
     source:
-        Path to a ``.txt`` or ``.dat`` file, an open file-like, or a string
-        containing the raw grid text.
+        Path to a ``.txt`` / ``.dat`` / ``.csv`` file, an open file-like, or a
+        string containing the raw grid text.
     max_cells:
         Maximum total number of array cells allowed.  Default is
         :data:`DEFAULT_MAX_CELLS` (~16 M).  Pass ``0`` to disable the cap.
+    delimiter:
+        Explicit column delimiter (e.g. ``","``).  ``None`` (default)
+        auto-detects from the content.
 
     Returns
     -------
@@ -170,7 +199,7 @@ def load_array(
     import os
 
     # ------------------------------------------------------------------
-    # Resolve the source to a readable object
+    # Resolve the source to raw text (so we can sniff the delimiter)
     # ------------------------------------------------------------------
     raw_text: str | None = None
 
@@ -185,38 +214,53 @@ def load_array(
         if is_path:
             # Validate extension before attempting to read
             lower = source.lower()
-            if not (lower.endswith(".txt") or lower.endswith(".dat")):
+            if not lower.endswith(_SUPPORTED_EXTENSIONS):
                 raise GridLoadError(
                     f"Unsupported file extension: '{source}'.  "
-                    "Only .txt and .dat files are supported."
+                    f"Supported extensions: {', '.join(_SUPPORTED_EXTENSIONS)}."
                 )
             if not os.path.exists(source):
                 raise GridLoadError(f"File not found: '{source}'.")
+            try:
+                with open(source, "r") as fh:
+                    raw_text = fh.read()
+            except OSError as exc:
+                raise GridLoadError(f"Could not read source: {exc}") from exc
         else:
             # Treat as raw text content
             raw_text = source
     elif hasattr(source, "read"):
-        pass  # file-like: pass through to np.loadtxt below
+        data = source.read()
+        raw_text = data.decode("utf-8") if isinstance(data, bytes) else data
     else:
         # Attempt to coerce path-like objects
         try:
-            import os
-            source = os.fspath(source)  # type: ignore[arg-type]
+            spath = os.fspath(source)  # type: ignore[arg-type]
         except TypeError as exc:
             raise GridLoadError(
                 f"Cannot interpret source of type {type(source).__name__!r} "
                 "as a file path or text string."
             ) from exc
+        lower = spath.lower()
+        if not lower.endswith(_SUPPORTED_EXTENSIONS):
+            raise GridLoadError(
+                f"Unsupported file extension: '{spath}'.  "
+                f"Supported extensions: {', '.join(_SUPPORTED_EXTENSIONS)}."
+            )
+        if not os.path.exists(spath):
+            raise GridLoadError(f"File not found: '{spath}'.")
+        try:
+            with open(spath, "r") as fh:
+                raw_text = fh.read()
+        except OSError as exc:
+            raise GridLoadError(f"Could not read source: {exc}") from exc
 
     # ------------------------------------------------------------------
     # Parse with np.loadtxt, catching ALL real errors
     # ------------------------------------------------------------------
+    used_delimiter = delimiter if delimiter is not None else _sniff_delimiter(raw_text or "")
     try:
-        if raw_text is not None:
-            fileobj: IO[str] = io.StringIO(raw_text)
-            array = np.loadtxt(fileobj)
-        else:
-            array = np.loadtxt(source)
+        array = np.loadtxt(io.StringIO(raw_text or ""), delimiter=used_delimiter)
     except ValueError as exc:
         # np.loadtxt raises ValueError for ragged rows ("Wrong number of
         # columns") and for non-numeric content.
@@ -378,6 +422,34 @@ def apply_value_range(
     return clipped
 
 
+def downsample(array: np.ndarray, max_cells: int) -> np.ndarray:
+    """Stride-decimate a 2-D *array* so its cell count is <= *max_cells* (SPEC-22).
+
+    Returns the array unchanged when it already fits or *max_cells* <= 0.  The
+    decimation factor is the same on both axes (``array[::f, ::f]``) so aspect
+    ratio is preserved.  This is an *additive* render-time bound — it never
+    replaces the :func:`load_array` ``max_cells`` load guard (invariant 6).
+
+    Parameters
+    ----------
+    array:
+        Input 2-D array.
+    max_cells:
+        Target maximum cell count after decimation.
+
+    Returns
+    -------
+    numpy.ndarray
+        A view/strided copy with <= *max_cells* cells (best effort; the result
+        may be slightly above the target by at most one stride step).
+    """
+    if max_cells <= 0 or array.size <= max_cells:
+        return array
+    factor = int(math.ceil(math.sqrt(array.size / max_cells)))
+    factor = max(factor, 1)
+    return array[::factor, ::factor]
+
+
 # ---------------------------------------------------------------------------
 # Parameter validation helpers
 # ---------------------------------------------------------------------------
@@ -433,6 +505,7 @@ def render(
     xlabel: str | None = None,
     ylabel: str | None = None,
     output_format: str = "png",
+    max_render_cells: int | None = None,
     figsize: tuple[float, float] = _FIGURE_SIZE,
     dpi: int = _FIGURE_DPI,
 ) -> bytes:
@@ -520,6 +593,12 @@ def render(
         raise RenderError(
             f"render() requires a 2-D array; got shape {array.shape}."
         )
+
+    # -- Optional render-time downsampling (SPEC-22) -----------------------
+    # An ADDITIVE bound that caps the per-render imshow work; it never replaces
+    # the load_array max_cells guard (invariant 6).
+    if max_render_cells is not None:
+        array = downsample(array, max_render_cells)
 
     # -- Apply value range clamp (heatmap + contour family) ----------------
     display_array = array

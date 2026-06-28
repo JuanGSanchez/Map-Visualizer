@@ -32,6 +32,7 @@ from map_visualizer import (
     RenderMode,
     array_stats,
     apply_value_range,
+    downsample,
     draw_contour,
     draw_heatmap,
     draw_histogram,
@@ -200,7 +201,8 @@ class TestLoadArrayErrors:
             load_array(missing)
 
     def test_bad_extension_raises_grid_load_error(self, tmp_path):
-        p = tmp_path / "grid.csv"
+        # .csv is now supported (SPEC-15); use a genuinely unsupported ext.
+        p = tmp_path / "grid.json"
         p.write_text("1,2\n3,4\n")
         with pytest.raises(GridLoadError):
             load_array(str(p))
@@ -822,3 +824,76 @@ class TestNewDrawHelpers:
 
     def test_draw_histogram_explicit_bins(self, fig_ax, simple_5x4):
         draw_histogram(fig_ax[1], simple_5x4, bins=7)
+
+
+# ===========================================================================
+# SPEC-15 — CSV / delimiter import + validation
+# ===========================================================================
+
+class TestLoadArrayDelimiters:
+    def test_csv_inline_text(self):
+        arr = load_array("1,2,3\n4,5,6\n7,8,9")
+        assert arr.shape == (3, 3)
+        assert arr[1, 1] == 5.0
+
+    def test_semicolon_inline_text(self):
+        arr = load_array("1;2\n3;4")
+        assert arr.shape == (2, 2)
+        assert arr[1, 0] == 3.0
+
+    def test_whitespace_still_works(self):
+        arr = load_array("1 2 3\n4 5 6")
+        assert arr.shape == (2, 3)
+
+    def test_csv_file(self, tmp_path, simple_3x3):
+        path = tmp_path / "grid.csv"
+        np.savetxt(str(path), simple_3x3, fmt="%.1f", delimiter=",")
+        arr = load_array(str(path))
+        assert arr.shape == (3, 3)
+
+    def test_explicit_delimiter_overrides_sniff(self):
+        arr = load_array("1,2\n3,4", delimiter=",")
+        assert arr.shape == (2, 2)
+
+    def test_unsupported_extension_csv_sibling_rejected(self, tmp_path):
+        path = tmp_path / "grid.xlsx"
+        path.write_text("1 2\n3 4")
+        with pytest.raises(GridLoadError):
+            load_array(str(path))
+
+    def test_ragged_csv_raises_validation(self):
+        with pytest.raises(GridValidationError):
+            load_array("1,2,3\n4,5")
+
+
+# ===========================================================================
+# SPEC-22 — render-time downsampling for large grids
+# ===========================================================================
+
+class TestDownsample:
+    def test_small_array_unchanged(self, simple_3x3):
+        out = downsample(simple_3x3, max_cells=100)
+        assert out.shape == simple_3x3.shape
+
+    def test_zero_cap_disables(self, simple_3x3):
+        out = downsample(simple_3x3, max_cells=0)
+        assert out.shape == simple_3x3.shape
+
+    def test_large_array_decimated(self):
+        big = np.arange(0.0, 10000.0).reshape(100, 100)
+        out = downsample(big, max_cells=400)
+        assert out.size <= big.size
+        assert out.size <= 400 + out.shape[0] + out.shape[1]  # best-effort bound
+        assert out.ndim == 2
+
+    def test_aspect_preserved(self):
+        big = np.zeros((80, 40))
+        out = downsample(big, max_cells=200)
+        # same stride on both axes preserves the 2:1 ratio
+        assert out.shape[0] >= out.shape[1]
+
+    def test_render_with_max_render_cells(self):
+        from map_visualizer import render
+        big = np.arange(0.0, 10000.0).reshape(100, 100)
+        result = render(big, mode="heatmap", max_render_cells=400)
+        assert result[:8] == PNG_MAGIC

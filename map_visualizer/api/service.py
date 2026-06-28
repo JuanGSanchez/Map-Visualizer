@@ -201,6 +201,7 @@ def render_from_inline_grid(
     xlabel: str | None = None,
     ylabel: str | None = None,
     output_format: str = "png",
+    max_render_cells: int | None = None,
     max_cells: int = DEFAULT_MAX_CELLS,
 ) -> tuple[bytes, dict]:
     """Load *grid*, render headlessly, and return ``(png_bytes, stats)``.
@@ -275,6 +276,7 @@ def render_from_inline_grid(
         xlabel=xlabel,
         ylabel=ylabel,
         output_format=output_format,
+        max_render_cells=max_render_cells,
     )
 
     stats = _core_array_stats(array)

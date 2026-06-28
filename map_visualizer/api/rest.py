@@ -194,6 +194,13 @@ class RenderRequest(BaseModel):
         default="png",
         description='Output image format: "png" (default), "svg", or "pdf".',
     )
+    max_render_cells: int | None = Field(
+        default=None,
+        description=(
+            "Optional render-time cell cap: grids larger than this are "
+            "stride-downsampled before drawing (additive to the load guard)."
+        ),
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -364,6 +371,7 @@ def post_render(body: RenderRequest, request: Request, format: str = "png") -> R
             xlabel=body.xlabel,
             ylabel=body.ylabel,
             output_format=body.image_format,
+            max_render_cells=body.max_render_cells,
         )
     except (GridLoadError, GridValidationError, InvalidParameterError, RenderError) as exc:
         raise _core_error_to_422(exc) from exc

@@ -47,6 +47,7 @@ from .core import (
     DEFAULT_MAX_CELLS,
     apply_value_range,
     array_stats,
+    downsample,
     draw_contour,
     draw_contourf,
     draw_heatmap,
@@ -76,6 +77,7 @@ __all__ = [
     "list_colormaps",
     "list_interpolations",
     "apply_value_range",
+    "downsample",
     # Public Axes-level drawing helpers (shared by Qt UI and Agg render path)
     "draw_heatmap",
     "draw_contour",
