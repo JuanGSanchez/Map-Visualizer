@@ -72,11 +72,14 @@ from map_visualizer.core import (
     apply_value_range,
     array_stats,
     draw_contour,
+    draw_contourf,
     draw_heatmap,
     draw_histogram,
     draw_profile,
+    draw_surface3d,
     list_colormaps,
     list_interpolations,
+    render as core_render,
 )
 from map_visualizer.enums import RenderMode
 from map_visualizer.exceptions import (
@@ -86,6 +89,8 @@ from map_visualizer.exceptions import (
     RenderError,
 )
 from map_visualizer.resources import resource_path
+from map_visualizer.gui.info import mode_info_text, register_info, update_info
+from map_visualizer.gui.theme import DEFAULT_THEME, build_stylesheet
 
 log = logging.getLogger(__name__)
 
@@ -120,10 +125,17 @@ class _MplCanvas(FigureCanvasQTAgg):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.updateGeometry()
 
-    def clear_axes(self) -> None:
-        """Remove all axes artists and re-create a fresh subplot."""
+    def clear_axes(self, projection: str | None = None) -> None:
+        """Remove all axes artists and re-create a fresh subplot.
+
+        *projection* is passed to ``add_subplot`` so 3-D modes can request a
+        ``"3d"`` axes (the same projection the headless core uses).
+        """
         self.fig.clear()
-        self.ax = self.fig.add_subplot(111)
+        if projection is not None:
+            self.ax = self.fig.add_subplot(111, projection=projection)
+        else:
+            self.ax = self.fig.add_subplot(111)
 
 
 # ---------------------------------------------------------------------------
@@ -189,6 +201,10 @@ class MainWindow(QMainWindow):
         # ------------------------------------------------------------------
         self.setWindowTitle(_APP_TITLE)
         self.resize(1100, 700)
+
+        # SPEC-01: the ONE tooltip-styling point — the whole app's QToolTip
+        # surface is themed here and only here.
+        self.setStyleSheet(build_stylesheet(DEFAULT_THEME))
 
         icon_path = resource_path("Logo MVis.png")
         if os.path.isfile(icon_path):
@@ -276,9 +292,16 @@ class MainWindow(QMainWindow):
 
         # -- File open button --
         self._btn_open = QPushButton("Open map file...")
-        self._btn_open.setToolTip("Open a whitespace-delimited .txt or .dat grid file")
+        register_info(self._btn_open, "open_file")
         self._btn_open.clicked.connect(self._open_file)
         outer.addWidget(self._btn_open)
+
+        # -- Export button --
+        self._btn_export = QPushButton("Export image...")
+        register_info(self._btn_export, "export")
+        self._btn_export.clicked.connect(self._export_image)
+        self._btn_export.setEnabled(False)
+        outer.addWidget(self._btn_export)
 
         # -- Stats display --
         self._stats_box = QGroupBox("Array statistics")
@@ -299,16 +322,22 @@ class MainWindow(QMainWindow):
         mode_box = QGroupBox("Visualization mode")
         mode_layout = QFormLayout(mode_box)
         self._cb_mode = QComboBox()
-        for m in RenderMode:
-            self._cb_mode.addItem(m.value.capitalize(), userData=m.value)
-        self._cb_mode.setCurrentText(RenderMode.HEATMAP.value.capitalize())
-        self._cb_mode.setToolTip(
-            "Select the visualization mode.\n"
-            "Heatmap: 2D imshow grid\n"
-            "Contour: filled contour plot\n"
-            "Histogram: value distribution\n"
-            "Profile: row or column line plot"
-        )
+        # User-facing modes (profile axis is chosen by its own selector, so the
+        # redundant profile_row/profile_col core modes are omitted here).
+        for m in (
+            RenderMode.HEATMAP,
+            RenderMode.CONTOUR,
+            RenderMode.CONTOURF,
+            RenderMode.SURFACE3D,
+            RenderMode.HISTOGRAM,
+            RenderMode.PROFILE,
+        ):
+            label = m.value.replace("3d", " 3-D").capitalize()
+            self._cb_mode.addItem(label, userData=m.value)
+        self._cb_mode.setCurrentIndex(0)
+        register_info(self._cb_mode, "mode")
+        # State-driven help (reference _update_action_tooltip pattern, SPEC-01).
+        update_info(self._cb_mode, mode_info_text(RenderMode.HEATMAP.value))
         self._cb_mode.currentIndexChanged.connect(self._on_mode_changed)
         mode_layout.addRow("Mode:", self._cb_mode)
         outer.addWidget(mode_box)
@@ -320,15 +349,13 @@ class MainWindow(QMainWindow):
         self._cb_cmap = QComboBox()
         self._cb_cmap.addItems(list_colormaps())
         self._cb_cmap.setCurrentText(_DEFAULT_CMAP)
-        self._cb_cmap.setToolTip("Select the matplotlib colormap")
+        register_info(self._cb_cmap, "colormap")
         self._cb_cmap.currentTextChanged.connect(self._on_param_changed)
 
         self._cb_interp = QComboBox()
         self._cb_interp.addItems(list_interpolations())
         self._cb_interp.setCurrentText(_DEFAULT_INTERP)
-        self._cb_interp.setToolTip(
-            "Select the imshow interpolation (heatmap mode only)"
-        )
+        register_info(self._cb_interp, "interpolation")
         self._cb_interp.currentTextChanged.connect(self._on_param_changed)
 
         cmap_layout.addRow("Colormap:", self._cb_cmap)
@@ -343,6 +370,10 @@ class MainWindow(QMainWindow):
         self._ed_val_min = _FloatEdit()
         self._sl_val_max = self._make_slider()
         self._ed_val_max = _FloatEdit()
+        for w in (self._sl_val_min, self._ed_val_min):
+            register_info(w, "value_min")
+        for w in (self._sl_val_max, self._ed_val_max):
+            register_info(w, "value_max")
 
         self._sl_val_min.valueChanged.connect(
             lambda v: self._on_slider_moved(v, "val_min"))
@@ -360,6 +391,7 @@ class MainWindow(QMainWindow):
         vr_layout.addRow("", self._sl_val_max)
 
         btn_vr_reset = QPushButton("Reset to data range")
+        register_info(btn_vr_reset, "value_reset")
         btn_vr_reset.clicked.connect(self._reset_value_range)
         vr_layout.addRow(btn_vr_reset)
         outer.addWidget(vr_box)
@@ -372,6 +404,10 @@ class MainWindow(QMainWindow):
         self._ed_col_min = _FloatEdit()
         self._sl_col_max = self._make_slider()
         self._ed_col_max = _FloatEdit()
+        for w in (self._sl_col_min, self._ed_col_min):
+            register_info(w, "color_min")
+        for w in (self._sl_col_max, self._ed_col_max):
+            register_info(w, "color_max")
 
         self._sl_col_min.valueChanged.connect(
             lambda v: self._on_slider_moved(v, "col_min"))
@@ -389,6 +425,7 @@ class MainWindow(QMainWindow):
         cr_layout.addRow("", self._sl_col_max)
 
         btn_cr_reset = QPushButton("Reset to data range")
+        register_info(btn_cr_reset, "color_reset")
         btn_cr_reset.clicked.connect(self._reset_color_range)
         cr_layout.addRow(btn_cr_reset)
         outer.addWidget(cr_box)
@@ -399,13 +436,13 @@ class MainWindow(QMainWindow):
 
         self._cb_profile_axis = QComboBox()
         self._cb_profile_axis.addItems(["row", "col"])
-        self._cb_profile_axis.setToolTip("Plot a horizontal row or vertical column slice")
+        register_info(self._cb_profile_axis, "profile_axis")
         self._cb_profile_axis.currentIndexChanged.connect(self._on_profile_changed)
 
         self._ed_profile_index = QLineEdit("0")
         from PySide6.QtGui import QIntValidator
         self._ed_profile_index.setValidator(QIntValidator(0, 999999))
-        self._ed_profile_index.setToolTip("Row or column index (0-based)")
+        register_info(self._ed_profile_index, "profile_index")
         self._ed_profile_index.editingFinished.connect(self._on_profile_changed)
 
         pr_layout.addRow("Axis:", self._cb_profile_axis)
@@ -435,10 +472,15 @@ class MainWindow(QMainWindow):
         act_open = QAction("&Open map file...", self)
         act_open.setShortcut(QKeySequence.StandardKey.Open)
         act_open.triggered.connect(self._open_file)
+        self._act_export = QAction("&Export image...", self)
+        self._act_export.setShortcut(QKeySequence.StandardKey.Save)
+        self._act_export.triggered.connect(self._export_image)
+        self._act_export.setEnabled(False)
         act_exit = QAction("E&xit", self)
         act_exit.setShortcut(QKeySequence.StandardKey.Quit)
         act_exit.triggered.connect(self.close)
         file_menu.addAction(act_open)
+        file_menu.addAction(self._act_export)
         file_menu.addSeparator()
         file_menu.addAction(act_exit)
 
@@ -452,6 +494,14 @@ class MainWindow(QMainWindow):
 
         # Help
         help_menu = menubar.addMenu("&Help")
+        # SPEC-02: keyboard-reachable help affordance — enter What's-This mode,
+        # then click/focus any control to read its registry info.  Shift+F1 is
+        # Qt's conventional What's-This shortcut.
+        act_whatsthis = QAction("What's &This?", self)
+        act_whatsthis.setShortcut(QKeySequence("Shift+F1"))
+        act_whatsthis.triggered.connect(self._enter_whats_this)
+        help_menu.addAction(act_whatsthis)
+        help_menu.addSeparator()
         act_about = QAction("&About Map-Visualizer...", self)
         act_about.triggered.connect(self._show_about)
         help_menu.addAction(act_about)
@@ -505,8 +555,73 @@ class MainWindow(QMainWindow):
         self._update_stats_display()
         self._reset_ranges_to_data()
         self._sb_file.setText(f"File: {os.path.basename(path)}")
+        self._btn_export.setEnabled(True)
+        self._act_export.setEnabled(True)
         log.info("Loaded %s array from %r", array.shape, path)
         self._redraw()
+
+    def _export_image(self) -> None:
+        """Export the current view to PNG / SVG / PDF (SPEC-16).
+
+        Delegates to the headless ``core.render`` with the current parameters
+        and the format inferred from the chosen file extension — no render math
+        in the widget layer.
+        """
+        if self._array is None:
+            return
+        path, _filter = QFileDialog.getSaveFileName(
+            self,
+            "Map-Visualizer — Export image",
+            "map.png",
+            "PNG image (*.png);;SVG vector (*.svg);;PDF document (*.pdf)",
+        )
+        if not path:
+            return
+
+        ext = os.path.splitext(path)[1].lower().lstrip(".")
+        fmt = ext if ext in ("png", "svg", "pdf") else "png"
+
+        mode = self._cb_mode.currentData()
+        profile_axis = self._cb_profile_axis.currentText()
+        try:
+            profile_index = int(self._ed_profile_index.text())
+        except ValueError:
+            profile_index = None
+
+        try:
+            data = core_render(
+                self._array,
+                mode=mode,
+                value_range=(self._val_min, self._val_max),
+                color_range=(self._col_min, self._col_max),
+                cmap=self._cb_cmap.currentText(),
+                interpolation=self._cb_interp.currentText(),
+                profile_index=profile_index,
+                profile_axis=profile_axis,
+                output_format=fmt,
+            )
+            with open(path, "wb") as fh:
+                fh.write(data)
+        except (RenderError, InvalidParameterError, OSError) as exc:
+            QMessageBox.critical(
+                self,
+                "Map-Visualizer — Export error",
+                f"Could not export image:\n\n{exc}",
+            )
+            log.error("export failed for %r: %s", path, exc)
+            return
+
+        self._sb_file.setText(f"Exported: {os.path.basename(path)}")
+        log.info("Exported %s image to %r", fmt, path)
+
+    def _enter_whats_this(self) -> None:
+        """Enter Qt's What's-This mode (SPEC-02 keyboard-reachable help).
+
+        Once active, clicking or focusing any registered control surfaces the
+        same single-registry info text used for hover tooltips.
+        """
+        from PySide6.QtWidgets import QWhatsThis
+        QWhatsThis.enterWhatsThisMode()
 
     # ======================================================================
     # Stats display
@@ -694,6 +809,8 @@ class MainWindow(QMainWindow):
         self._profile_box.setVisible(mode == RenderMode.PROFILE.value)
         # Interpolation only applies to heatmap
         self._cb_interp.setEnabled(mode == RenderMode.HEATMAP.value)
+        # State-driven help text (single registry, SPEC-01 dynamic case).
+        update_info(self._cb_mode, mode_info_text(mode))
         if self._array is not None:
             self._redraw()
 
@@ -725,7 +842,13 @@ class MainWindow(QMainWindow):
         interp = self._cb_interp.currentText()
 
         # Apply value-range clamp for modes that use it
-        if mode in (RenderMode.HEATMAP.value, RenderMode.CONTOUR.value):
+        _clamp_modes = (
+            RenderMode.HEATMAP.value,
+            RenderMode.CONTOUR.value,
+            RenderMode.CONTOURF.value,
+            RenderMode.SURFACE3D.value,
+        )
+        if mode in _clamp_modes:
             display_array = apply_value_range(
                 self._array, (self._val_min, self._val_max))
         else:
@@ -733,7 +856,9 @@ class MainWindow(QMainWindow):
 
         color_range = (self._col_min, self._col_max)
 
-        self._canvas.clear_axes()
+        # surface3d needs a 3-D axes — same projection the headless core uses.
+        projection = "3d" if mode == RenderMode.SURFACE3D.value else None
+        self._canvas.clear_axes(projection=projection)
         ax = self._canvas.ax
         fig = self._canvas.fig
 
@@ -748,6 +873,20 @@ class MainWindow(QMainWindow):
 
             elif mode == RenderMode.CONTOUR.value:
                 draw_contour(
+                    ax, fig, display_array,
+                    cmap=cmap,
+                    color_range=color_range,
+                )
+
+            elif mode == RenderMode.CONTOURF.value:
+                draw_contourf(
+                    ax, fig, display_array,
+                    cmap=cmap,
+                    color_range=color_range,
+                )
+
+            elif mode == RenderMode.SURFACE3D.value:
+                draw_surface3d(
                     ax, fig, display_array,
                     cmap=cmap,
                     color_range=color_range,
@@ -801,7 +940,11 @@ class MainWindow(QMainWindow):
 
         mode = self._cb_mode.currentData()
         # Pixel readout only makes sense for 2D image modes
-        if mode not in (RenderMode.HEATMAP.value, RenderMode.CONTOUR.value):
+        if mode not in (
+            RenderMode.HEATMAP.value,
+            RenderMode.CONTOUR.value,
+            RenderMode.CONTOURF.value,
+        ):
             self._sb_x.setText("")
             self._sb_y.setText("")
             self._sb_val.setText("")
