@@ -96,6 +96,9 @@ def post_render_image(
     color_range: list[float] | None = None,
     profile_index: int | None = None,
     profile_axis: str = "row",
+    levels: int | None = None,
+    bins: int | None = None,
+    colorbar: bool = True,
 ) -> Image:
     """Render an inline grid headlessly and return the PNG as an MCP image block.
 
@@ -105,8 +108,15 @@ def post_render_image(
         Inline 2-D numeric grid: whitespace-delimited text rows OR a JSON
         array-of-arrays string, e.g. ``"[[1.0, 2.0], [3.0, 4.0]]"``.
     mode:
-        Render mode: ``"heatmap"`` (default), ``"contour"``, ``"histogram"``,
-        ``"profile"``.
+        Render mode: ``"heatmap"`` (default), ``"contour"``, ``"contourf"``,
+        ``"surface3d"``, ``"histogram"``, ``"profile"``, ``"profile_row"``,
+        ``"profile_col"``.
+    levels:
+        Contour band count for contour/contourf modes (default 12).
+    bins:
+        Histogram bin count for histogram mode (default: auto).
+    colorbar:
+        Whether to draw a colorbar (colorbar-bearing modes).
     cmap:
         Matplotlib colormap name (see the ``get_colormaps`` tool for valid values).
     interpolation:
@@ -144,6 +154,10 @@ def post_render_image(
             interpolation=interpolation,
             profile_index=profile_index,
             profile_axis=profile_axis,
+            levels=levels,
+            bins=bins,
+            colorbar=colorbar,
+            output_format="png",
         )
     except (GridLoadError, GridValidationError, InvalidParameterError, RenderError) as exc:
         # FastMCP surfaces raised exceptions as isError tool results.

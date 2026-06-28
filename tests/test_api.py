@@ -293,3 +293,61 @@ class TestPostRender:
         assert r.status_code == 200
         body = r.json()
         assert "png_base64" in body
+
+
+# ---------------------------------------------------------------------------
+# POST /render — new render params (SPEC-14 / SPEC-16 access wiring)
+# ---------------------------------------------------------------------------
+
+class TestPostRenderExtended:
+    GRID = "1.0 2.0 3.0\n4.0 5.0 6.0\n7.0 8.0 9.0"
+
+    @pytest.mark.parametrize(
+        "mode", ["contourf", "surface3d", "profile_row", "profile_col"]
+    )
+    def test_new_modes_render(self, client, mode):
+        r = client.post("/render", json={"grid": self.GRID, "mode": mode})
+        assert r.status_code == 200
+        assert r.content[:8] == PNG_MAGIC
+
+    def test_svg_format_content_type(self, client):
+        r = client.post("/render", json={"grid": self.GRID, "image_format": "svg"})
+        assert r.status_code == 200
+        assert "image/svg+xml" in r.headers["content-type"]
+        assert r.content[:5] == b"<?xml"
+
+    def test_pdf_format_content_type(self, client):
+        r = client.post("/render", json={"grid": self.GRID, "image_format": "pdf"})
+        assert r.status_code == 200
+        assert "application/pdf" in r.headers["content-type"]
+        assert r.content[:4] == b"%PDF"
+
+    def test_unknown_image_format_422(self, client):
+        r = client.post("/render", json={"grid": self.GRID, "image_format": "tiff"})
+        assert r.status_code == 422
+
+    def test_levels_and_bins_params(self, client):
+        r1 = client.post("/render", json={
+            "grid": self.GRID, "mode": "contour", "levels": 5})
+        r2 = client.post("/render", json={
+            "grid": self.GRID, "mode": "histogram", "bins": 4})
+        assert r1.status_code == 200 and r2.status_code == 200
+
+    def test_invalid_levels_422(self, client):
+        r = client.post("/render", json={
+            "grid": self.GRID, "mode": "contour", "levels": 0})
+        assert r.status_code == 422
+
+    def test_colorbar_and_title_labels(self, client):
+        r = client.post("/render", json={
+            "grid": self.GRID, "colorbar": False,
+            "title": "T", "xlabel": "X", "ylabel": "Y"})
+        assert r.status_code == 200
+        assert r.content[:8] == PNG_MAGIC
+
+    def test_base64_includes_image_format(self, client):
+        r = client.post("/render?format=base64",
+                        json={"grid": self.GRID, "image_format": "svg"})
+        body = r.json()
+        assert body["image_format"] == "svg"
+        assert base64.b64decode(body["png_base64"])[:5] == b"<?xml"

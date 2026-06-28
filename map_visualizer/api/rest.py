@@ -137,7 +137,10 @@ class RenderRequest(BaseModel):
     )
     mode: str = Field(
         default="heatmap",
-        description='Render mode: "heatmap", "contour", "histogram", "profile".',
+        description=(
+            'Render mode: "heatmap", "contour", "contourf", "surface3d", '
+            '"histogram", "profile", "profile_row", "profile_col".'
+        ),
     )
     cmap: str = Field(
         default="viridis",
@@ -165,6 +168,31 @@ class RenderRequest(BaseModel):
     profile_axis: str = Field(
         default="row",
         description='"row" (horizontal slice) or "col" (vertical slice) for profile mode.',
+    )
+    levels: int | None = Field(
+        default=None,
+        description="Contour band count for contour/contourf modes (default 12).",
+    )
+    bins: int | None = Field(
+        default=None,
+        description="Histogram bin count for histogram mode (default: auto).",
+    )
+    colorbar: bool = Field(
+        default=True,
+        description="Whether to draw a colorbar (colorbar-bearing modes).",
+    )
+    title: str | None = Field(
+        default=None, description="Optional plot title.",
+    )
+    xlabel: str | None = Field(
+        default=None, description="Optional x-axis label.",
+    )
+    ylabel: str | None = Field(
+        default=None, description="Optional y-axis label.",
+    )
+    image_format: str = Field(
+        default="png",
+        description='Output image format: "png" (default), "svg", or "pdf".',
     )
 
     model_config = {
@@ -320,7 +348,7 @@ def post_render(body: RenderRequest, request: Request, format: str = "png") -> R
     interpolation, size-cap exceeded, or unexpected render failure).
     """
     try:
-        png_bytes, stats = service.render_from_inline_grid(
+        image_bytes, stats = service.render_from_inline_grid(
             body.grid,
             mode=body.mode,
             value_range=body.value_range,
@@ -329,6 +357,13 @@ def post_render(body: RenderRequest, request: Request, format: str = "png") -> R
             interpolation=body.interpolation,
             profile_index=body.profile_index,
             profile_axis=body.profile_axis,
+            levels=body.levels,
+            bins=body.bins,
+            colorbar=body.colorbar,
+            title=body.title,
+            xlabel=body.xlabel,
+            ylabel=body.ylabel,
+            output_format=body.image_format,
         )
     except (GridLoadError, GridValidationError, InvalidParameterError, RenderError) as exc:
         raise _core_error_to_422(exc) from exc
@@ -342,13 +377,22 @@ def post_render(body: RenderRequest, request: Request, format: str = "png") -> R
     if wants_json:
         return JSONResponse(
             content={
-                "png_base64": base64.b64encode(png_bytes).decode("ascii"),
+                "png_base64": base64.b64encode(image_bytes).decode("ascii"),
+                "image_format": body.image_format,
                 "stats": stats,
             }
         )
 
-    # Default: raw PNG bytes with image/png content type.
-    # Research Q2 / Finding F2.2: Response(content=..., media_type="image/png")
-    # is the canonical FastAPI idiom for in-memory PNG bytes (not StreamingResponse
-    # or FileResponse, which are for streaming generators and on-disk files).
-    return Response(content=png_bytes, media_type="image/png")
+    # Default: raw image bytes with the media type matching the requested format.
+    # Research Q2 / Finding F2.2: Response(content=..., media_type=...) is the
+    # canonical FastAPI idiom for in-memory bytes (not StreamingResponse or
+    # FileResponse, which are for streaming generators and on-disk files).
+    _MEDIA = {
+        "png": "image/png",
+        "svg": "image/svg+xml",
+        "pdf": "application/pdf",
+    }
+    return Response(
+        content=image_bytes,
+        media_type=_MEDIA.get(body.image_format, "image/png"),
+    )
