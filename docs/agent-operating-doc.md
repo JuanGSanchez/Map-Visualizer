@@ -249,13 +249,19 @@ the grid as a nested list in memory.
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
 | `grid` | string | yes | — | Inline grid (whitespace text or JSON array-of-arrays) |
-| `mode` | string | no | `"heatmap"` | One of `"heatmap"`, `"contour"`, `"histogram"`, `"profile"` |
+| `mode` | string | no | `"heatmap"` | One of `"heatmap"`, `"contour"`, `"contourf"`, `"surface3d"`, `"histogram"`, `"profile"`, `"profile_row"`, `"profile_col"` |
 | `cmap` | string | no | `"viridis"` | Matplotlib colormap name; use `get_colormaps` for valid values |
 | `interpolation` | string | no | `"nearest"` | imshow interpolation (heatmap mode only); use `get_interpolations` |
-| `value_range` | `[vmin, vmax]` | no | `null` | Clamp raw values before rendering (heatmap + contour) |
-| `color_range` | `[cmin, cmax]` | no | `null` | Colormap normalisation limits, independent of value clamp (heatmap + contour) |
+| `value_range` | `[vmin, vmax]` | no | `null` | Clamp raw values before rendering (heatmap + contour family) |
+| `color_range` | `[cmin, cmax]` | no | `null` | Colormap normalisation limits, independent of value clamp |
 | `profile_index` | int | no | `null` | Row or column index for profile mode; defaults to the middle row/column |
 | `profile_axis` | string | no | `"row"` | `"row"` (horizontal slice) or `"col"` (vertical slice); profile mode only |
+| `levels` | int | no | `null` | Contour band count for contour/contourf (default 12) |
+| `bins` | int | no | `null` | Histogram bin count (default: auto) |
+| `colorbar` | bool | no | `true` | Show/hide the colorbar (colorbar-bearing modes) |
+| `title` / `xlabel` / `ylabel` | string | no | `null` | Optional plot title / axis labels |
+| `image_format` | string | no | `"png"` | REST output format: `"png"`, `"svg"`, or `"pdf"` (MCP stays PNG) |
+| `max_render_cells` | int | no | `null` | Additive render-time downsample cap for large grids (never replaces the load guard) |
 
 ### post_render output
 
@@ -270,10 +276,13 @@ MCP transports.
 
 | Value | Description | Parameters honoured |
 |---|---|---|
-| `"heatmap"` | `imshow` grid with colorbar | `cmap`, `interpolation`, `value_range`, `color_range` |
-| `"contour"` | Filled + line contour | `cmap`, `value_range`, `color_range` |
-| `"histogram"` | Value distribution histogram | `cmap` (bar colours only) |
+| `"heatmap"` | `imshow` grid with colorbar | `cmap`, `interpolation`, `value_range`, `color_range`, `colorbar` |
+| `"contour"` | Filled + line contour | `cmap`, `value_range`, `color_range`, `levels`, `colorbar` |
+| `"contourf"` | Filled contour (no line overlay) | `cmap`, `value_range`, `color_range`, `levels`, `colorbar` |
+| `"surface3d"` | 3-D surface plot | `cmap`, `color_range`, `colorbar` |
+| `"histogram"` | Value distribution histogram | `cmap` (bar colours only), `bins` |
 | `"profile"` | 1-D row or column slice | `profile_index`, `profile_axis` |
+| `"profile_row"` / `"profile_col"` | Explicit row / column slice | `profile_index` |
 
 `interpolation` is validated and used only in heatmap mode. In all other modes it is accepted but
 ignored.
@@ -384,7 +393,9 @@ format in its text content.
 | Empty array | `GridValidationError` | Grid parses to zero elements |
 | All-NaN array | `GridValidationError` | Every cell is NaN |
 | Array exceeds size cap | `GridValidationError` | More than ~16 M cells |
-| Unknown render mode | `InvalidParameterError` | `mode` not in `{"heatmap", "contour", "histogram", "profile"}` |
+| Unknown render mode | `InvalidParameterError` | `mode` not in the supported set (heatmap/contour/contourf/surface3d/histogram/profile/profile_row/profile_col) |
+| Unknown output format | `InvalidParameterError` | `image_format` not `png`/`svg`/`pdf` |
+| Non-positive `levels`/`bins` | `InvalidParameterError` | `levels < 1` or `bins < 1` |
 | Unknown colormap name | `InvalidParameterError` | `cmap` not in the list from `get_colormaps` |
 | Unknown interpolation name | `InvalidParameterError` | `interpolation` not in the list from `get_interpolations` |
 | Out-of-range profile_index | `InvalidParameterError` | Index outside `[0, rows-1]` or `[0, cols-1]` |

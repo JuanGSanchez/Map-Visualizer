@@ -561,7 +561,7 @@ class MainWindow(QMainWindow):
             self,
             "Map-Visualizer — Open grid file",
             "",
-            "Grid files (*.txt *.dat);;All files (*)",
+            "Grid files (*.txt *.dat *.csv);;All files (*)",
         )
         if not path:
             return

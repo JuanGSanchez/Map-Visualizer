@@ -189,6 +189,26 @@ class TestModeDispatch:
         assert "histogram" in window._cb_mode.toolTip().lower()
 
 
+class TestInteractivityParity:
+    """SPEC-17 — navigation toolbar present; selectors from core enumerations."""
+
+    def test_navigation_toolbar_present(self, window):
+        from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
+        assert isinstance(window._toolbar, NavigationToolbar2QT)
+
+    def test_colormap_selector_from_core(self, window):
+        from map_visualizer import list_colormaps
+        items = {window._cb_cmap.itemText(i)
+                 for i in range(window._cb_cmap.count())}
+        assert items == set(list_colormaps())
+
+    def test_interpolation_selector_from_core(self, window):
+        from map_visualizer import list_interpolations
+        items = {window._cb_interp.itemText(i)
+                 for i in range(window._cb_interp.count())}
+        assert items == set(list_interpolations())
+
+
 class TestExport:
     def test_export_writes_png(self, window, tmp_path, monkeypatch):
         window._array = np.arange(1.0, 13.0).reshape(3, 4)

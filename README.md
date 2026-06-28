@@ -1,10 +1,12 @@
 # Map-Visualizer
 
-**Map-Visualizer** converts a 2-D numeric grid (whitespace-delimited `.txt`/`.dat` file, or inline
-text/JSON over the API) into a rendered PNG visualization. Four visualization modes are supported:
-heatmap, contour, histogram, and row/column profile. The same headless render core powers three
+**Map-Visualizer** converts a 2-D numeric grid (`.txt`/`.dat`/`.csv` file with auto-detected
+whitespace/comma/semicolon delimiter, or inline text/JSON over the API) into a rendered image
+(PNG, SVG, or PDF). Eight visualization modes are supported: heatmap, contour, filled contour,
+3-D surface, histogram, and row/column profiles. The same headless render core powers three
 independent surfaces: a PySide6 desktop GUI, a REST + MCP access layer, and a packaged Windows
-executable.
+executable. Rendering is deterministic (byte-identical output for identical input) and
+thread-safe (a module-level lock guards the matplotlib draw/serialise section).
 
 - **Version:** 2.0.0
 - **License:** GPL-3.0-or-later
@@ -18,9 +20,17 @@ executable.
 | Mode | Description |
 |---|---|
 | `heatmap` | `imshow` color map with colorbar. Supports `cmap`, `interpolation`, `value_range`, `color_range`. |
-| `contour` | Filled + line contour of grid values. Supports `cmap`, `value_range`, `color_range`. |
-| `histogram` | Distribution of all cell values, bars colored by `cmap`. |
+| `contour` | Filled + line contour of grid values. Supports `cmap`, `value_range`, `color_range`, `levels`. |
+| `contourf` | Filled contour (no line overlay). Supports `cmap`, `value_range`, `color_range`, `levels`. |
+| `surface3d` | 3-D surface plot (`projection="3d"` + `plot_surface`). Supports `cmap`, `color_range`. |
+| `histogram` | Distribution of all cell values, bars colored by `cmap`. Supports `bins`. |
 | `profile` | 1-D line plot of a single row or column slice. Controlled by `profile_index` and `profile_axis`. |
+| `profile_row` / `profile_col` | Explicit row / column profile (axis fixed; API/MCP convenience). |
+
+Shared render parameters: `colorbar` (toggle), `title` / `xlabel` / `ylabel` (annotations),
+`output_format` (`png` / `svg` / `pdf`), and `max_render_cells` (additive render-time downsampling
+for large grids). Output is deterministic — metadata stamps are stripped and a fixed `svg.hashsalt`
+keeps SVG ids stable, so two renders of one input are byte-identical.
 
 ---
 
@@ -73,15 +83,24 @@ Adds pytest, pytest-cov, and PyInstaller.
 map-visualizer-gui
 ```
 
-The application opens a file dialog. Select a `.txt` or `.dat` file containing a
-whitespace-delimited 2-D numeric grid. Once loaded:
+The application opens a file dialog. Select a `.txt`, `.dat`, or `.csv` file containing a 2-D
+numeric grid (whitespace/comma/semicolon delimiter auto-detected). Once loaded:
 
-- Use the **mode selector** to switch among heatmap, contour, histogram, and profile views.
+- Use the **mode selector** to switch among heatmap, contour, filled contour, 3-D surface,
+  histogram, and profile views.
 - Adjust **colormap** and **interpolation** from the drop-down lists.
 - Set the **value range** (clip raw values before rendering) and **color range** (colormap
   normalisation limits) independently.
+- Toggle the **colorbar** and set a **title** / **axis labels** in the Annotations panel.
+- **Export** the current view to PNG, SVG, or PDF (File ▸ Export image…); the format follows the
+  chosen file extension.
 - Hover over the map to see the pixel's column, row, and value in the stats panel.
 - Choose a profile axis and index in profile mode.
+
+**Widget help & accessibility.** Every control carries a single registry-fed info text reachable
+three ways: hover (tooltip), keyboard focus / screen reader (accessible description), and
+What's-This mode (Help ▸ What's This?, or **Shift+F1**). There is one centralized info surface and
+one tooltip theme — no per-widget popups.
 
 ### REST + MCP access layer (HTTP)
 
