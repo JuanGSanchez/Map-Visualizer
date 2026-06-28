@@ -939,3 +939,35 @@ class TestNoBareExcepts:
         # No print() diagnostics in the core; it uses the logging module.
         assert "\n    print(" not in src
         assert "logging.getLogger" in src
+
+
+# ===========================================================================
+# SPEC-19 — figure lifecycle / memory (OO path, no pyplot, no gc.collect cult)
+# ===========================================================================
+
+class TestFigureLifecycle:
+    def test_no_pyplot_or_gc_collect_in_core(self):
+        import pathlib
+        pkg = pathlib.Path(__file__).resolve().parent.parent / "map_visualizer"
+        src = (pkg / "core.py").read_text(encoding="utf-8")
+        assert "gc.collect" not in src
+        assert "import matplotlib.pyplot" not in src
+        assert "from matplotlib import pyplot" not in src
+        assert "plt.figure" not in src
+
+    def test_looped_renders_do_not_leak_pyplot_figures(self, simple_5x4):
+        # The OO Agg path uses no global figure registry, so pyplot tracks none.
+        import matplotlib.pyplot as plt
+        plt.close("all")
+        before = len(plt.get_fignums())
+        for _ in range(30):
+            render(simple_5x4, mode="heatmap")
+        after = len(plt.get_fignums())
+        assert after == before  # bounded — no figure accumulation
+
+    def test_many_renders_emit_no_too_many_figures_warning(self, simple_5x4):
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")  # promote RuntimeWarning to error
+            for _ in range(25):
+                render(simple_5x4, mode="heatmap")
