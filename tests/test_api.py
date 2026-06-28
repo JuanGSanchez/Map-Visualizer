@@ -351,3 +351,52 @@ class TestPostRenderExtended:
         body = r.json()
         assert body["image_format"] == "svg"
         assert base64.b64decode(body["png_base64"])[:5] == b"<?xml"
+
+
+# ---------------------------------------------------------------------------
+# RS-01 — single-row inline grid (text + JSON) must succeed, not 422
+# ---------------------------------------------------------------------------
+
+class TestSingleRowInlineGrid:
+    def test_single_row_json_render_200(self, client):
+        r = client.post("/render", json={"grid": "[[1.0, 2.0, 3.0]]"})
+        assert r.status_code == 200
+        assert r.content[:8] == PNG_MAGIC
+
+    def test_single_row_json_stats_200_shape(self, client):
+        r = client.post("/stats", json={"grid": "[[1.0, 2.0, 3.0]]"})
+        assert r.status_code == 200
+        assert r.json()["shape"] == [1, 3]
+
+    def test_single_row_whitespace_render_200(self, client):
+        r = client.post("/render", json={"grid": "1.0 2.0 3.0"})
+        assert r.status_code == 200
+        assert r.content[:8] == PNG_MAGIC
+
+    def test_single_row_whitespace_stats_shape(self, client):
+        r = client.post("/stats", json={"grid": "1.0 2.0 3.0"})
+        assert r.status_code == 200
+        assert r.json()["shape"] == [1, 3]
+
+
+# ---------------------------------------------------------------------------
+# RS-03 — the 422 mapping must not emit the deprecated-status DeprecationWarning
+# ---------------------------------------------------------------------------
+
+class TestNoDeprecatedStatusConstant:
+    def test_rest_module_has_no_deprecated_constant_call(self):
+        import pathlib
+        rest = pathlib.Path(__file__).resolve().parent.parent \
+            / "map_visualizer" / "api" / "rest.py"
+        src = rest.read_text(encoding="utf-8")
+        # Only the explanatory comment may mention the old name; never call it.
+        assert "status.HTTP_422_UNPROCESSABLE_ENTITY" not in src
+
+    def test_422_path_emits_no_status_deprecation_warning(self, client):
+        import warnings
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            r = client.post("/render", json={"grid": "1.0 2.0\n3.0\n"})
+        assert r.status_code == 422
+        msgs = " ".join(str(w.message) for w in caught)
+        assert "HTTP_422_UNPROCESSABLE_ENTITY" not in msgs

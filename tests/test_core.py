@@ -867,6 +867,57 @@ class TestLoadArrayDelimiters:
 
 
 # ===========================================================================
+# RS-01 — single-row inline grid must NOT be misclassified as a file path
+# ===========================================================================
+
+class TestSingleRowInlineGrid:
+    def test_single_row_whitespace_no_newline(self):
+        # A 1×N inline row with no trailing newline must parse, not be treated
+        # as a (bad) file path. Previously raised GridLoadError("Unsupported
+        # file extension").
+        arr = load_array("1 2 3")
+        assert arr.shape == (1, 3)
+        np.testing.assert_allclose(arr, [[1.0, 2.0, 3.0]])
+
+    def test_single_row_csv_no_newline(self):
+        arr = load_array("1,2,3")
+        assert arr.shape == (1, 3)
+
+    def test_single_row_semicolon_no_newline(self):
+        arr = load_array("1;2;3")
+        assert arr.shape == (1, 3)
+
+    def test_single_row_with_trailing_newline_still_works(self):
+        # Regression guard: the newline variant kept working before and after.
+        arr = load_array("1 2 3\n")
+        assert arr.shape == (1, 3)
+
+    def test_single_value_no_newline(self):
+        # A single scalar token promotes to a 1×1 grid (0-D → reshape).
+        arr = load_array("42")
+        assert arr.shape == (1, 1)
+        assert arr[0, 0] == pytest.approx(42.0)
+
+    def test_real_path_still_routed_as_path(self, tmp_path):
+        # A genuine path (has a separator + extension) is still read as a file.
+        p = tmp_path / "row.txt"
+        p.write_text("1 2 3\n")
+        arr = load_array(str(p))
+        assert arr.shape == (1, 3)
+
+    def test_missing_path_still_grid_load_error(self, tmp_path):
+        missing = str(tmp_path / "nope.txt")
+        with pytest.raises(GridLoadError):
+            load_array(missing)
+
+    def test_bad_extension_path_still_rejected(self, tmp_path):
+        p = tmp_path / "grid.json"
+        p.write_text("1 2\n3 4\n")
+        with pytest.raises(GridLoadError):
+            load_array(str(p))
+
+
+# ===========================================================================
 # SPEC-22 — render-time downsampling for large grids
 # ===========================================================================
 

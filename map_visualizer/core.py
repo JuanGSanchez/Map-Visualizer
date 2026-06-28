@@ -27,7 +27,6 @@ from __future__ import annotations
 import io
 import logging
 import math
-import textwrap
 import threading
 from typing import IO, Union
 
@@ -204,12 +203,16 @@ def load_array(
     raw_text: str | None = None
 
     if isinstance(source, str):
-        # Detect whether it looks like raw text (contains a newline or
-        # spaces that suggest multi-token content but no OS path separators).
+        # Decide "file path" vs. "raw inline grid text".  Treat the string as a
+        # path ONLY when it ends with a supported extension OR contains an OS
+        # path separator; otherwise it is raw inline text.  A single-row inline
+        # grid such as "1 2 3" has no newline and no separator and MUST NOT be
+        # mistaken for a path (RS-01) — the previous "no newline ⇒ path"
+        # heuristic broke 1×N inline grids and single-row JSON over REST/MCP.
         is_path = (
-            os.sep in source
+            source.lower().endswith(_SUPPORTED_EXTENSIONS)
+            or os.sep in source
             or (os.altsep and os.altsep in source)
-            or "\n" not in source
         )
         if is_path:
             # Validate extension before attempting to read

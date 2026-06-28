@@ -45,7 +45,7 @@ from __future__ import annotations
 
 import base64
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
@@ -240,10 +240,17 @@ class RenderRequest(BaseModel):
 # Error helpers
 # ---------------------------------------------------------------------------
 
+#: HTTP "Unprocessable Content" status code.  Use the literal 422 rather than
+#: FastAPI's older named 422 constant, which newer Starlette/FastAPI deprecate in
+#: favour of the "...CONTENT" spelling; the literal is version-agnostic and never
+#: deprecated (RS-03).
+_HTTP_422 = 422
+
+
 def _core_error_to_422(exc: Exception) -> HTTPException:
     """Map any core typed exception to HTTP 422 with a structured body."""
     return HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=_HTTP_422,
         detail={"error": type(exc).__name__, "message": str(exc)},
     )
 
