@@ -64,6 +64,10 @@ HELP: dict[str, str] = {
         "Plot a horizontal row slice or a vertical column slice of the grid."
     ),
     "profile_index": "0-based row or column index for the profile slice.",
+    "colorbar": "Show or hide the colorbar (colorbar-bearing modes).",
+    "plot_title": "Optional title drawn above the plot.",
+    "xlabel": "Optional label for the horizontal axis.",
+    "ylabel": "Optional label for the vertical axis.",
     "fullscreen": "Toggle fullscreen display of the window (F11).",
     "whatsthis": (
         "Enter What's-This mode (Shift+F1), then click any control to read its "

@@ -897,3 +897,45 @@ class TestDownsample:
         big = np.arange(0.0, 10000.0).reshape(100, 100)
         result = render(big, mode="heatmap", max_render_cells=400)
         assert result[:8] == PNG_MAGIC
+
+
+# ===========================================================================
+# SPEC-21 — structured error handling (no bare/silent excepts in core)
+# ===========================================================================
+
+class TestNoBareExcepts:
+    def _core_sources(self):
+        import pathlib
+        pkg = pathlib.Path(__file__).resolve().parent.parent / "map_visualizer"
+        return [pkg / "core.py", pkg / "exceptions.py",
+                pkg / "api" / "service.py"]
+
+    def test_no_silent_except_pass(self):
+        import re
+        # A blanket "except ...: pass" that swallows errors is forbidden (R-2).
+        bad = re.compile(r"except[^\n]*:\s*\n\s*pass\b")
+        for path in self._core_sources():
+            src = path.read_text(encoding="utf-8")
+            assert not bad.search(src), f"silent except in {path.name}"
+
+    def test_no_bare_except(self):
+        import re
+        # `except:` with no exception type is forbidden — always name the type.
+        bare = re.compile(r"\n\s*except\s*:")
+        for path in self._core_sources():
+            src = path.read_text(encoding="utf-8")
+            assert not bare.search(src), f"bare except in {path.name}"
+
+    def test_malformed_load_names_the_cause(self):
+        # A structured, message-bearing error (not a silent sentinel).
+        with pytest.raises(GridValidationError) as exc_info:
+            load_array("1 2 3\n4 5\n")
+        assert "ragged" in str(exc_info.value).lower()
+
+    def test_core_uses_logging_not_print(self):
+        import pathlib
+        pkg = pathlib.Path(__file__).resolve().parent.parent / "map_visualizer"
+        src = (pkg / "core.py").read_text(encoding="utf-8")
+        # No print() diagnostics in the core; it uses the logging module.
+        assert "\n    print(" not in src
+        assert "logging.getLogger" in src

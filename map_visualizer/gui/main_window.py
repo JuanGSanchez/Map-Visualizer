@@ -450,6 +450,34 @@ class MainWindow(QMainWindow):
         self._profile_box.setVisible(False)
         outer.addWidget(self._profile_box)
 
+        # -- Annotations (colorbar toggle + title / axis labels) — SPEC-16 --
+        from PySide6.QtWidgets import QCheckBox
+        ann_box = QGroupBox("Annotations")
+        ann_layout = QFormLayout(ann_box)
+
+        self._chk_colorbar = QCheckBox()
+        self._chk_colorbar.setChecked(True)
+        register_info(self._chk_colorbar, "colorbar")
+        self._chk_colorbar.stateChanged.connect(self._on_param_changed)
+
+        self._ed_title = QLineEdit()
+        register_info(self._ed_title, "plot_title")
+        self._ed_title.editingFinished.connect(self._on_param_changed)
+
+        self._ed_xlabel = QLineEdit()
+        register_info(self._ed_xlabel, "xlabel")
+        self._ed_xlabel.editingFinished.connect(self._on_param_changed)
+
+        self._ed_ylabel = QLineEdit()
+        register_info(self._ed_ylabel, "ylabel")
+        self._ed_ylabel.editingFinished.connect(self._on_param_changed)
+
+        ann_layout.addRow("Colorbar:", self._chk_colorbar)
+        ann_layout.addRow("Title:", self._ed_title)
+        ann_layout.addRow("X label:", self._ed_xlabel)
+        ann_layout.addRow("Y label:", self._ed_ylabel)
+        outer.addWidget(ann_box)
+
         # -- Stretch filler --
         outer.addStretch(1)
 
@@ -598,6 +626,10 @@ class MainWindow(QMainWindow):
                 interpolation=self._cb_interp.currentText(),
                 profile_index=profile_index,
                 profile_axis=profile_axis,
+                colorbar=self._chk_colorbar.isChecked(),
+                title=self._ed_title.text() or None,
+                xlabel=self._ed_xlabel.text() or None,
+                ylabel=self._ed_ylabel.text() or None,
                 output_format=fmt,
             )
             with open(path, "wb") as fh:
@@ -862,6 +894,8 @@ class MainWindow(QMainWindow):
         ax = self._canvas.ax
         fig = self._canvas.fig
 
+        show_cbar = self._chk_colorbar.isChecked()
+
         try:
             if mode == RenderMode.HEATMAP.value:
                 draw_heatmap(
@@ -869,6 +903,7 @@ class MainWindow(QMainWindow):
                     cmap=cmap,
                     interpolation=interp,
                     color_range=color_range,
+                    colorbar=show_cbar,
                 )
 
             elif mode == RenderMode.CONTOUR.value:
@@ -876,6 +911,7 @@ class MainWindow(QMainWindow):
                     ax, fig, display_array,
                     cmap=cmap,
                     color_range=color_range,
+                    colorbar=show_cbar,
                 )
 
             elif mode == RenderMode.CONTOURF.value:
@@ -883,6 +919,7 @@ class MainWindow(QMainWindow):
                     ax, fig, display_array,
                     cmap=cmap,
                     color_range=color_range,
+                    colorbar=show_cbar,
                 )
 
             elif mode == RenderMode.SURFACE3D.value:
@@ -890,6 +927,7 @@ class MainWindow(QMainWindow):
                     ax, fig, display_array,
                     cmap=cmap,
                     color_range=color_range,
+                    colorbar=show_cbar,
                 )
 
             elif mode == RenderMode.HISTOGRAM.value:
@@ -923,6 +961,14 @@ class MainWindow(QMainWindow):
             )
             log.error("RenderError during redraw (mode=%r): %s", mode, exc)
             return
+
+        # Optional user annotations override any per-mode defaults (SPEC-16).
+        if self._ed_title.text().strip():
+            ax.set_title(self._ed_title.text())
+        if self._ed_xlabel.text().strip():
+            ax.set_xlabel(self._ed_xlabel.text())
+        if self._ed_ylabel.text().strip():
+            ax.set_ylabel(self._ed_ylabel.text())
 
         self._canvas.draw_idle()
 
