@@ -48,9 +48,11 @@ from .core import (
     apply_value_range,
     array_stats,
     draw_contour,
+    draw_contourf,
     draw_heatmap,
     draw_histogram,
     draw_profile,
+    draw_surface3d,
     list_colormaps,
     list_interpolations,
     load_array,
@@ -77,6 +79,8 @@ __all__ = [
     # Public Axes-level drawing helpers (shared by Qt UI and Agg render path)
     "draw_heatmap",
     "draw_contour",
+    "draw_contourf",
+    "draw_surface3d",
     "draw_histogram",
     "draw_profile",
     # Constants

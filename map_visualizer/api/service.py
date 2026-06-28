@@ -194,6 +194,13 @@ def render_from_inline_grid(
     interpolation: str = "nearest",
     profile_index: int | None = None,
     profile_axis: str = "row",
+    levels: int | None = None,
+    bins: int | None = None,
+    colorbar: bool = True,
+    title: str | None = None,
+    xlabel: str | None = None,
+    ylabel: str | None = None,
+    output_format: str = "png",
     max_cells: int = DEFAULT_MAX_CELLS,
 ) -> tuple[bytes, dict]:
     """Load *grid*, render headlessly, and return ``(png_bytes, stats)``.
@@ -261,6 +268,13 @@ def render_from_inline_grid(
         interpolation=interpolation,
         profile_index=profile_index,
         profile_axis=profile_axis,
+        levels=levels,
+        bins=bins,
+        colorbar=colorbar,
+        title=title,
+        xlabel=xlabel,
+        ylabel=ylabel,
+        output_format=output_format,
     )
 
     stats = _core_array_stats(array)

@@ -655,3 +655,170 @@ class TestResourcePath:
         from map_visualizer.resources import resource_path
         result = resource_path("something.txt")
         assert os.path.isabs(result)
+
+
+# ===========================================================================
+# SPEC-14 — extended render modes (contourf, surface3d, profile_row/col)
+# ===========================================================================
+
+SVG_MAGIC = b"<?xml"
+PDF_MAGIC = b"%PDF"
+
+
+class TestRenderExtendedModes:
+    @pytest.mark.parametrize(
+        "mode",
+        ["heatmap", "contour", "contourf", "surface3d",
+         "histogram", "profile", "profile_row", "profile_col"],
+    )
+    def test_each_mode_returns_png(self, simple_5x4, mode):
+        # SPEC-11: every mode renders a valid PNG headlessly under Agg.
+        result = render(simple_5x4, mode=mode)
+        assert result[:8] == PNG_MAGIC
+        assert len(result) > 0
+
+    def test_contourf_has_no_line_overlay_param(self, simple_5x4):
+        # contourf and contour are distinct modes that both render.
+        a = render(simple_5x4, mode="contourf")
+        b = render(simple_5x4, mode="contour")
+        assert a[:8] == PNG_MAGIC and b[:8] == PNG_MAGIC
+
+    def test_surface3d_with_nans(self, array_with_nans):
+        # NaNs are filled before plot_surface — must not raise.
+        result = render(array_with_nans, mode="surface3d")
+        assert result[:8] == PNG_MAGIC
+
+    def test_contour_explicit_levels(self, simple_5x4):
+        result = render(simple_5x4, mode="contour", levels=5)
+        assert result[:8] == PNG_MAGIC
+
+    def test_contour_invalid_levels_raises(self, simple_5x4):
+        with pytest.raises(InvalidParameterError):
+            render(simple_5x4, mode="contour", levels=0)
+
+    def test_histogram_explicit_bins(self, simple_5x4):
+        result = render(simple_5x4, mode="histogram", bins=10)
+        assert result[:8] == PNG_MAGIC
+
+    def test_histogram_invalid_bins_raises(self, simple_5x4):
+        with pytest.raises(InvalidParameterError):
+            render(simple_5x4, mode="histogram", bins=0)
+
+    def test_profile_row_and_col_match_profile_axis(self, simple_5x4):
+        row = render(simple_5x4, mode="profile_row", profile_index=1)
+        explicit = render(simple_5x4, mode="profile",
+                          profile_index=1, profile_axis="row")
+        assert row == explicit
+
+
+# ===========================================================================
+# SPEC-16 — multi-format export + colorbar/title/label controls
+# ===========================================================================
+
+class TestRenderOutputFormats:
+    def test_png_default(self, simple_3x3):
+        assert render(simple_3x3)[:8] == PNG_MAGIC
+
+    def test_svg_bytes(self, simple_3x3):
+        result = render(simple_3x3, output_format="svg")
+        assert result[:5] == SVG_MAGIC
+        assert b"<svg" in result[:600]
+
+    def test_pdf_bytes(self, simple_3x3):
+        result = render(simple_3x3, output_format="pdf")
+        assert result[:4] == PDF_MAGIC
+
+    def test_unknown_format_raises(self, simple_3x3):
+        with pytest.raises(InvalidParameterError):
+            render(simple_3x3, output_format="tiff")
+
+    def test_colorbar_toggle_changes_output(self, simple_3x3):
+        with_cb = render(simple_3x3, colorbar=True)
+        without_cb = render(simple_3x3, colorbar=False)
+        assert with_cb != without_cb
+
+    def test_title_and_labels_render(self, simple_3x3):
+        result = render(simple_3x3, mode="histogram",
+                        title="T", xlabel="X", ylabel="Y")
+        assert result[:8] == PNG_MAGIC
+
+
+# ===========================================================================
+# SPEC-18 — deterministic output
+# ===========================================================================
+
+class TestRenderDeterminism:
+    def test_png_byte_identical(self, simple_5x4):
+        assert render(simple_5x4) == render(simple_5x4)
+
+    def test_svg_byte_identical(self, simple_5x4):
+        a = render(simple_5x4, output_format="svg")
+        b = render(simple_5x4, output_format="svg")
+        assert a == b
+
+    def test_pixel_dimensions_equal_figsize_times_dpi(self, simple_5x4):
+        import matplotlib.image as mimage
+        png = render(simple_5x4, figsize=(6, 5), dpi=100)
+        arr = mimage.imread(io.BytesIO(png), format="png")
+        # No bbox_inches="tight": dimensions are exactly figsize*dpi (H, W).
+        assert arr.shape[0] == 500
+        assert arr.shape[1] == 600
+
+    def test_histogram_deterministic(self, simple_5x4):
+        a = render(simple_5x4, mode="histogram", bins=8)
+        b = render(simple_5x4, mode="histogram", bins=8)
+        assert a == b
+
+
+# ===========================================================================
+# SPEC-20 / SPEC-12 — thread-safe concurrent rendering
+# ===========================================================================
+
+class TestRenderConcurrency:
+    def test_parallel_renders_all_valid(self, simple_5x4):
+        from concurrent.futures import ThreadPoolExecutor
+        modes = ["heatmap", "contour", "contourf", "histogram",
+                 "profile", "surface3d"] * 4
+
+        def _one(m):
+            return render(simple_5x4, mode=m)
+
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            results = list(ex.map(_one, modes))
+
+        assert len(results) == len(modes)
+        for r in results:
+            assert r[:8] == PNG_MAGIC
+
+    def test_concurrent_identical_inputs_are_deterministic(self, simple_5x4):
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            results = list(ex.map(lambda _: render(simple_5x4), range(16)))
+        # All renders of the same input must be byte-identical (SPEC-18 + lock).
+        assert all(r == results[0] for r in results)
+
+
+# ===========================================================================
+# SPEC-14/16 — new draw_* helpers (Axes-level, shared with the GUI)
+# ===========================================================================
+
+class TestNewDrawHelpers:
+    def test_draw_contourf(self, fig_ax, simple_5x4):
+        from map_visualizer import draw_contourf
+        fig, ax = fig_ax
+        draw_contourf(ax, fig, simple_5x4, levels=6)
+
+    def test_draw_surface3d(self, simple_5x4):
+        from matplotlib.figure import Figure
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
+        from map_visualizer import draw_surface3d
+        fig = Figure(figsize=(4, 3), dpi=72)
+        FigureCanvasAgg(fig)
+        ax = fig.add_subplot(111, projection="3d")
+        draw_surface3d(ax, fig, simple_5x4)
+
+    def test_draw_heatmap_no_colorbar(self, fig_ax, simple_3x3):
+        draw_heatmap(fig_ax[1], fig_ax[0], simple_3x3, colorbar=False)
+
+    def test_draw_histogram_explicit_bins(self, fig_ax, simple_5x4):
+        draw_histogram(fig_ax[1], simple_5x4, bins=7)

@@ -28,6 +28,7 @@ import io
 import logging
 import math
 import textwrap
+import threading
 from typing import IO, Union
 
 import numpy as np
@@ -57,6 +58,30 @@ DEFAULT_MAX_CELLS: int = 4096 * 4096
 _FIGURE_SIZE = (6, 5)
 #: Default DPI used by :func:`render`.
 _FIGURE_DPI = 100
+
+#: Output formats supported by :func:`render` (SPEC-16).  Each maps to the
+#: matplotlib ``savefig`` backend format and the bytes' validating magic prefix.
+_OUTPUT_FORMATS: dict[str, bytes] = {
+    "png": b"\x89PNG\r\n\x1a\n",
+    "svg": b"<?xml",            # SVG documents start with the XML declaration
+    "pdf": b"%PDF",
+}
+
+#: matplotlib is NOT thread-safe: the Agg font cache is class-level and a
+#: concurrent ``draw``/``savefig`` is a documented segfault risk (SPEC-20,
+#: research §4).  Each render builds its OWN ``Figure`` (never shared), and the
+#: draw/serialise critical section is additionally serialised by this module-level
+#: lock so the REST/MCP server can call :func:`render` from worker threads safely.
+_RENDER_LOCK = threading.Lock()
+
+#: Per-format ``savefig`` metadata that strips the non-deterministic
+#: ``Software``/``CreationDate`` stamps matplotlib injects, so identical inputs
+#: yield byte-identical output run-to-run (SPEC-18, research §7).
+_DETERMINISTIC_METADATA: dict[str, dict[str, None]] = {
+    "png": {"Software": None},
+    "svg": {"Date": None},
+    "pdf": {"CreationDate": None},
+}
 
 # ---------------------------------------------------------------------------
 # Lazy colormap / interpolation caches
@@ -401,10 +426,17 @@ def render(
     interpolation: str = "nearest",
     profile_index: int | None = None,
     profile_axis: str = "row",
+    levels: int | None = None,
+    bins: int | None = None,
+    colorbar: bool = True,
+    title: str | None = None,
+    xlabel: str | None = None,
+    ylabel: str | None = None,
+    output_format: str = "png",
     figsize: tuple[float, float] = _FIGURE_SIZE,
     dpi: int = _FIGURE_DPI,
 ) -> bytes:
-    """Render *array* headlessly and return PNG bytes.
+    """Render *array* headlessly and return image bytes.
 
     This function never imports ``matplotlib.pyplot`` or any GUI backend.
     It constructs a :class:`matplotlib.figure.Figure`, attaches a
@@ -418,8 +450,20 @@ def render(
         A 2-D ``numpy.ndarray`` (as returned by :func:`load_array`).
     mode:
         Visualization mode.  One of ``"heatmap"``, ``"contour"``,
-        ``"histogram"``, ``"profile"``.  Case-sensitive; use
+        ``"contourf"``, ``"surface3d"``, ``"histogram"``, ``"profile"``,
+        ``"profile_row"``, ``"profile_col"``.  Case-sensitive; use
         :class:`~map_visualizer.enums.RenderMode` for safety.
+    levels:
+        Contour band count for ``contour``/``contourf`` modes (default 12).
+    bins:
+        Histogram bin count for ``histogram`` mode (default: auto).
+    colorbar:
+        Whether to draw a colorbar for the colorbar-bearing modes.
+    title, xlabel, ylabel:
+        Optional explicit axis title / axis labels (SPEC-16).
+    output_format:
+        ``"png"`` (default), ``"svg"``, or ``"pdf"`` (SPEC-16).  Returns valid
+        bytes of the requested format with non-deterministic metadata stripped.
     value_range:
         Optional ``(vmin, vmax)`` pair.  Values outside this window are
         clamped before rendering (heatmap and contour modes).
@@ -464,66 +508,135 @@ def render(
     if render_mode == RenderMode.HEATMAP:
         _validate_interpolation(interpolation)
 
+    out_fmt = output_format.lower()
+    if out_fmt not in _OUTPUT_FORMATS:
+        raise InvalidParameterError(
+            f"Unknown output_format {output_format!r}.  "
+            f"Supported: {sorted(_OUTPUT_FORMATS)}"
+        )
+
     # -- Ensure 2-D input ---------------------------------------------------
     if array.ndim != 2:
         raise RenderError(
             f"render() requires a 2-D array; got shape {array.shape}."
         )
 
-    # -- Apply value range clamp (heatmap + contour) -----------------------
+    # -- Apply value range clamp (heatmap + contour family) ----------------
     display_array = array
     if value_range is not None and render_mode in (
         RenderMode.HEATMAP,
         RenderMode.CONTOUR,
+        RenderMode.CONTOURF,
+        RenderMode.SURFACE3D,
     ):
         display_array = apply_value_range(array, value_range)
 
-    # -- Build figure (Agg only — no pyplot, no GUI) -----------------------
-    from matplotlib.figure import Figure
-    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    # matplotlib is not thread-safe (SPEC-20): build the figure, draw, and
+    # serialise entirely inside the module-level render lock.  The Figure is
+    # function-local so it is never shared across threads (SPEC-19/20).
+    with _RENDER_LOCK:
+        # -- Build figure (Agg only — no pyplot, no GUI) -------------------
+        from matplotlib.figure import Figure
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
 
-    fig = Figure(figsize=figsize, dpi=dpi, facecolor="white", tight_layout=True)
-    FigureCanvasAgg(fig)  # attach Agg canvas — no display, no GUI
-    ax = fig.add_subplot(111)
+        fig = Figure(figsize=figsize, dpi=dpi, facecolor="white", tight_layout=True)
+        FigureCanvasAgg(fig)  # attach Agg canvas — no display, no GUI
 
-    try:
-        if render_mode == RenderMode.HEATMAP:
-            _render_heatmap(
-                ax, fig, display_array,
-                cmap=cmap,
-                interpolation=interpolation,
-                color_range=color_range,
+        if render_mode == RenderMode.SURFACE3D:
+            ax = fig.add_subplot(111, projection="3d")
+        else:
+            ax = fig.add_subplot(111)
+
+        try:
+            if render_mode == RenderMode.HEATMAP:
+                _render_heatmap(
+                    ax, fig, display_array,
+                    cmap=cmap,
+                    interpolation=interpolation,
+                    color_range=color_range,
+                    colorbar=colorbar,
+                )
+
+            elif render_mode == RenderMode.CONTOUR:
+                _render_contour(
+                    ax, fig, display_array,
+                    cmap=cmap,
+                    color_range=color_range,
+                    levels=levels,
+                    lines=True,
+                    colorbar=colorbar,
+                )
+
+            elif render_mode == RenderMode.CONTOURF:
+                _render_contour(
+                    ax, fig, display_array,
+                    cmap=cmap,
+                    color_range=color_range,
+                    levels=levels,
+                    lines=False,
+                    colorbar=colorbar,
+                )
+
+            elif render_mode == RenderMode.SURFACE3D:
+                _render_surface3d(
+                    ax, fig, display_array,
+                    cmap=cmap,
+                    color_range=color_range,
+                    colorbar=colorbar,
+                )
+
+            elif render_mode == RenderMode.HISTOGRAM:
+                _render_histogram(ax, display_array, cmap=cmap, bins=bins)
+
+            elif render_mode == RenderMode.PROFILE:
+                _render_profile(
+                    ax, array,
+                    profile_index=profile_index,
+                    profile_axis=profile_axis,
+                )
+
+            elif render_mode == RenderMode.PROFILE_ROW:
+                _render_profile(
+                    ax, array, profile_index=profile_index, profile_axis="row",
+                )
+
+            elif render_mode == RenderMode.PROFILE_COL:
+                _render_profile(
+                    ax, array, profile_index=profile_index, profile_axis="col",
+                )
+
+            # -- Optional explicit annotations (SPEC-16) ------------------
+            if title is not None:
+                ax.set_title(title)
+            if xlabel is not None:
+                ax.set_xlabel(xlabel)
+            if ylabel is not None:
+                ax.set_ylabel(ylabel)
+
+        except (InvalidParameterError, RenderError):
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise RenderError(
+                f"Matplotlib raised an unexpected error during render "
+                f"(mode={mode!r}): {type(exc).__name__}: {exc}"
+            ) from exc
+
+        # -- Serialise to deterministic bytes (SPEC-18) -------------------
+        # Strip the version/date stamp matplotlib injects so identical inputs
+        # produce byte-identical output run-to-run.  No bbox_inches="tight" —
+        # pixel dimensions stay exactly figsize*dpi.  A fixed ``svg.hashsalt``
+        # makes SVG clip-path / gid identifiers stable across runs (otherwise
+        # they are randomised per process and break byte-equality).
+        import matplotlib
+
+        buf = io.BytesIO()
+        with matplotlib.rc_context({"svg.hashsalt": "map-visualizer"}):
+            fig.savefig(
+                buf,
+                format=out_fmt,
+                metadata=_DETERMINISTIC_METADATA[out_fmt],
             )
-
-        elif render_mode == RenderMode.CONTOUR:
-            _render_contour(
-                ax, fig, display_array,
-                cmap=cmap,
-                color_range=color_range,
-            )
-
-        elif render_mode == RenderMode.HISTOGRAM:
-            _render_histogram(ax, display_array, cmap=cmap)
-
-        elif render_mode == RenderMode.PROFILE:
-            _render_profile(
-                ax, array,
-                profile_index=profile_index,
-                profile_axis=profile_axis,
-            )
-
-    except (InvalidParameterError, RenderError):
-        raise
-    except Exception as exc:  # noqa: BLE001
-        raise RenderError(
-            f"Matplotlib raised an unexpected error during render "
-            f"(mode={mode!r}): {type(exc).__name__}: {exc}"
-        ) from exc
-
-    # -- Serialise to PNG bytes --------------------------------------------
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png")
-    return buf.getvalue()
+        return buf.getvalue()
 
 
 # ---------------------------------------------------------------------------
@@ -543,6 +656,7 @@ def draw_heatmap(
     cmap: str = "viridis",
     interpolation: str = "nearest",
     color_range: tuple[float, float] | None = None,
+    colorbar: bool = True,
 ) -> None:
     """Draw an imshow heatmap on *ax*.
 
@@ -561,9 +675,11 @@ def draw_heatmap(
     color_range:
         Optional ``(cmin, cmax)`` colormap normalisation limits.  When given,
         the colorbar limits are set to this range independently of the data.
+    colorbar:
+        Whether to attach a colorbar (default ``True``).
     """
     _render_heatmap(ax, fig, array, cmap=cmap, interpolation=interpolation,
-                    color_range=color_range)
+                    color_range=color_range, colorbar=colorbar)
 
 
 def draw_contour(
@@ -573,6 +689,8 @@ def draw_contour(
     *,
     cmap: str = "viridis",
     color_range: tuple[float, float] | None = None,
+    levels: int | None = None,
+    colorbar: bool = True,
 ) -> None:
     """Draw a filled + line contour on *ax*.
 
@@ -588,8 +706,42 @@ def draw_contour(
         Matplotlib colormap name.
     color_range:
         Optional ``(vmin, vmax)`` contour normalisation limits.
+    levels:
+        Number of contour bands (default :data:`_DEFAULT_CONTOUR_LEVELS`).
+    colorbar:
+        Whether to attach a colorbar (default ``True``).
     """
-    _render_contour(ax, fig, array, cmap=cmap, color_range=color_range)
+    _render_contour(ax, fig, array, cmap=cmap, color_range=color_range,
+                    levels=levels, lines=True, colorbar=colorbar)
+
+
+def draw_contourf(
+    ax,
+    fig,
+    array: np.ndarray,
+    *,
+    cmap: str = "viridis",
+    color_range: tuple[float, float] | None = None,
+    levels: int | None = None,
+    colorbar: bool = True,
+) -> None:
+    """Draw a filled contour (no overlaid line contour) on *ax*."""
+    _render_contour(ax, fig, array, cmap=cmap, color_range=color_range,
+                    levels=levels, lines=False, colorbar=colorbar)
+
+
+def draw_surface3d(
+    ax,
+    fig,
+    array: np.ndarray,
+    *,
+    cmap: str = "viridis",
+    color_range: tuple[float, float] | None = None,
+    colorbar: bool = True,
+) -> None:
+    """Draw a 3-D surface on a 3-D *ax* (created with ``projection="3d"``)."""
+    _render_surface3d(ax, fig, array, cmap=cmap, color_range=color_range,
+                      colorbar=colorbar)
 
 
 def draw_histogram(
@@ -597,6 +749,7 @@ def draw_histogram(
     array: np.ndarray,
     *,
     cmap: str = "viridis",
+    bins: int | None = None,
 ) -> None:
     """Draw a histogram of the non-NaN cell values on *ax*.
 
@@ -608,8 +761,10 @@ def draw_histogram(
         2-D ``numpy.ndarray`` whose values are histogrammed.
     cmap:
         Matplotlib colormap name used to colour the histogram bars.
+    bins:
+        Explicit bin count (default: auto from sample size).
     """
-    _render_histogram(ax, array, cmap=cmap)
+    _render_histogram(ax, array, cmap=cmap, bins=bins)
 
 
 def draw_profile(
@@ -648,6 +803,7 @@ def _render_heatmap(
     cmap: str,
     interpolation: str,
     color_range: tuple[float, float] | None,
+    colorbar: bool = True,
 ) -> None:
     """Draw an imshow heatmap on *ax*, optionally with a colorbar."""
     rows, cols = array.shape
@@ -670,10 +826,15 @@ def _render_heatmap(
     if color_range is not None:
         im.set_clim(vmin=color_range[0], vmax=color_range[1])
 
-    fig.colorbar(im, ax=ax, orientation="vertical", format="%.2f")
+    if colorbar:
+        fig.colorbar(im, ax=ax, orientation="vertical", format="%.2f")
     ax.tick_params(
         bottom=False, left=False, labelbottom=False, labelleft=False
     )
+
+
+#: Default contour level count used when *levels* is not supplied.
+_DEFAULT_CONTOUR_LEVELS = 12
 
 
 def _render_contour(
@@ -683,8 +844,23 @@ def _render_contour(
     *,
     cmap: str,
     color_range: tuple[float, float] | None,
+    levels: int | None = None,
+    lines: bool = True,
+    colorbar: bool = True,
 ) -> None:
-    """Draw a filled + line contour on *ax*."""
+    """Draw a filled contour on *ax*, optionally overlaid with line contours.
+
+    *levels* controls the number of contour bands (fixed for deterministic
+    output, SPEC-17/18).  When *lines* is true a thin black line-contour is
+    overlaid (the ``contour`` mode); when false only the filled bands are drawn
+    (the ``contourf`` mode).
+    """
+    n_levels = _DEFAULT_CONTOUR_LEVELS if levels is None else int(levels)
+    if n_levels < 1:
+        raise InvalidParameterError(
+            f"levels must be a positive integer; got {levels!r}."
+        )
+
     rows, cols = array.shape
     x = np.arange(1, cols + 2)
     y = np.arange(1, rows + 2)
@@ -696,12 +872,55 @@ def _render_contour(
         vmin, vmax = color_range[0], color_range[1]
 
     # Filled contour
-    cf = ax.contourf(X, Y, array, levels=12, cmap=cmap, vmin=vmin, vmax=vmax)
-    # Line contour overlay
-    ax.contour(X, Y, array, levels=12, colors="k", linewidths=0.5, alpha=0.4)
+    cf = ax.contourf(X, Y, array, levels=n_levels, cmap=cmap, vmin=vmin, vmax=vmax)
+    # Optional line contour overlay
+    if lines:
+        ax.contour(
+            X, Y, array, levels=n_levels, colors="k", linewidths=0.5, alpha=0.4
+        )
 
-    fig.colorbar(cf, ax=ax, orientation="vertical", format="%.2f")
+    if colorbar:
+        fig.colorbar(cf, ax=ax, orientation="vertical", format="%.2f")
     ax.set_aspect("auto")
+
+
+def _render_surface3d(
+    ax,
+    fig,
+    array: np.ndarray,
+    *,
+    cmap: str,
+    color_range: tuple[float, float] | None,
+    colorbar: bool = True,
+) -> None:
+    """Draw a 3-D surface on a 3-D *ax* (``projection="3d"``).
+
+    The mplot3d toolkit auto-registers the ``"3d"`` projection (matplotlib
+    >= 3.2), so no explicit ``import mpl_toolkits.mplot3d`` is required.  NaNs
+    are filled with the data mean so ``plot_surface`` produces a continuous
+    mesh instead of holes.
+    """
+    rows, cols = array.shape
+    X, Y = np.meshgrid(np.arange(1, cols + 1), np.arange(1, rows + 1))
+
+    # plot_surface cannot handle NaN gracefully — substitute the mean.
+    z = array
+    if np.any(np.isnan(z)):
+        z = np.where(np.isnan(z), float(np.nanmean(z)), z)
+
+    vmin = float(np.nanmin(array))
+    vmax = float(np.nanmax(array))
+    if color_range is not None:
+        vmin, vmax = color_range[0], color_range[1]
+
+    surf = ax.plot_surface(
+        X, Y, z, cmap=cmap, vmin=vmin, vmax=vmax,
+        linewidth=0, antialiased=False,
+    )
+    if colorbar:
+        fig.colorbar(surf, ax=ax, orientation="vertical", format="%.2f", shrink=0.6)
+    ax.set_xlabel("Column")
+    ax.set_ylabel("Row")
 
 
 def _render_histogram(
@@ -709,8 +928,13 @@ def _render_histogram(
     array: np.ndarray,
     *,
     cmap: str,
+    bins: int | None = None,
 ) -> None:
-    """Draw a histogram of the non-NaN cell values."""
+    """Draw a histogram of the non-NaN cell values.
+
+    *bins* fixes the bin count for deterministic output (SPEC-18); when
+    ``None`` an automatic count derived from the sample size is used.
+    """
     flat = array[~np.isnan(array)].ravel()
     if flat.size == 0:
         ax.text(
@@ -719,8 +943,15 @@ def _render_histogram(
         )
         return
 
-    # Use up to 50 bins; fewer if there are very few unique values
-    n_bins = min(50, max(5, int(np.sqrt(flat.size))))
+    if bins is not None:
+        if int(bins) < 1:
+            raise InvalidParameterError(
+                f"bins must be a positive integer; got {bins!r}."
+            )
+        n_bins = int(bins)
+    else:
+        # Use up to 50 bins; fewer if there are very few unique values
+        n_bins = min(50, max(5, int(np.sqrt(flat.size))))
 
     # Colour the bars using the selected cmap to keep aesthetic consistency.
     # matplotlib.cm.get_cmap was removed in 3.9+; use matplotlib.colormaps

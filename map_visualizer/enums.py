@@ -31,11 +31,23 @@ class RenderMode(str, Enum):
     CONTOUR = "contour"
     """Filled + line contour of the grid values."""
 
+    CONTOURF = "contourf"
+    """Filled contour of the grid values (no overlaid line contour)."""
+
+    SURFACE3D = "surface3d"
+    """3-D surface plot (``add_subplot(projection="3d")`` + ``plot_surface``)."""
+
     HISTOGRAM = "histogram"
     """Distribution histogram of all cell values."""
 
     PROFILE = "profile"
-    """Line plot of a single row or column slice."""
+    """Line plot of a single row or column slice (axis chosen by ``profile_axis``)."""
+
+    PROFILE_ROW = "profile_row"
+    """Line plot of a single row slice (explicit row mode)."""
+
+    PROFILE_COL = "profile_col"
+    """Line plot of a single column slice (explicit column mode)."""
 
     @classmethod
     def values(cls) -> list[str]:
